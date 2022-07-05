@@ -2,7 +2,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 from battle_environment import BattleEnvironment
 import os
-FOLDER = 'results/PPO_2'
+FOLDER = 'results/PPO_3'
 LOG_DIR = f'{FOLDER}/logs/'
 if not os.path.exists(LOG_DIR):
     os.makedirs(LOG_DIR)
@@ -26,12 +26,12 @@ class TrainAndLoggingCallback(BaseCallback):
 
 CHECKPOINT_DIR = f'{FOLDER}/train/'
 save_freq = 50000
-timesteps = 2000000
+timesteps = 500000
 saved_timesteps = timesteps // save_freq * save_freq
 
 # ---------- TRAINING ----------
 callback = TrainAndLoggingCallback(check_freq=save_freq, save_path=CHECKPOINT_DIR)
-env = BattleEnvironment(show=False, hit_base_reward=100, hit_plane_reward=100, miss_punishment=-5, too_long_punishment=0, closer_to_base_reward=0, 
+env = BattleEnvironment(show=False, hit_base_reward=100, hit_plane_reward=100, miss_punishment=0, too_long_punishment=0, closer_to_base_reward=0, 
     closer_to_plane_reward=0, lose_punishment=-50)
 config = [env.hit_base_reward, env.hit_plane_reward, env.miss_punishment, env.too_long_punishment, env.closer_to_base_reward, env.closer_to_plane_reward, env.lose_punishment]
 model = PPO('MlpPolicy', env, tensorboard_log=LOG_DIR, verbose=1)
@@ -55,7 +55,7 @@ for episode in range(episodes): # Evaluates the model n times
         print('# Episodes:{} Avg Score:{}'.format(episode+1, score/10))
 print(env.wins())
 with open(f'{FOLDER}/results.txt', 'w') as f:
-    print(f"VALUES:\nhit base:{config[0]}\nhit plane:{config[1]}\nmiss:{config[2]}\ntoo long:{config[3]}\ncloser to base:{config[4]}\ncloser to plane:{config[5]}\nlose:{config[6]}")
+    print(f"VALUES:\nhit base:{config[0]}\nhit plane:{config[1]}\nmiss:{config[2]}\ntoo long:{config[3]}\ncloser to base:{config[4]}\ncloser to plane:{config[5]}\nlose:{config[6]}", file=f)
     print(env.wins(), file=f)
 
 # ---------- VISUALIZATION ----------

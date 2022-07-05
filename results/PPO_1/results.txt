@@ -1,3 +1,11 @@
-Wins by red: 44
-Wins by blue: 51
-Tied games: 5
+VALUES:
+hit base:100
+hit plane:100
+miss:-5
+too long:0
+closer to base:0
+closer to plane:0
+lose:-50
+Wins by red: 1
+Wins by blue: 69
+Tied games: 30

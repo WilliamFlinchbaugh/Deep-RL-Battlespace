@@ -172,7 +172,7 @@ class Bullet(pygame.sprite.Sprite):
         self.pos = (x, y)
         self.speed = speed
         self.dist_travelled = 0
-        self.max_dist = 500
+        self.max_dist = 600
 
     def update(self, screen_width, screen_height, time):
         oldpos = self.rect.center
@@ -208,7 +208,6 @@ class BattleEnvironment(gym.Env):
         self.width = DISP_WIDTH
         self.height = DISP_HEIGHT
         self.max_time = 10
-        self.max_bullets = 10
         self.action_space = spaces.Discrete(4) # Forward, Shoot, Turn right/Turn to plane, Turn left/Turn to base
 
         # ---------- Observation Space ----------
@@ -230,15 +229,6 @@ class BattleEnvironment(gym.Env):
             'time': spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
         }
 
-        for idx in range(self.max_bullets):
-            obs_space[f'bullet_{idx}_shot'] = spaces.Box(-1, 1, dtype=np.int16, shape=(1,))
-            obs_space[f'bullet_{idx}_team'] = spaces.Box(-1, 1, dtype=np.int16, shape=(1,))
-            obs_space[f'bullet_{idx}_x'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
-            obs_space[f'bullet_{idx}_y'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
-            obs_space[f'bullet_{idx}_direction'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
-            obs_space[f'bullet_{idx}_dist_to_plane'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
-            obs_space[f'bullet_{idx}_angle_to_plane'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
-
         mins = np.array([x.low[0] for x in obs_space.values()])
         maxs = np.array([x.high[0] for x in obs_space.values()])
 
@@ -257,7 +247,7 @@ class BattleEnvironment(gym.Env):
         self.team['red']['wins'] = 0
         self.team['blue']['wins'] = 0
         self.ties = 0
-        self.bullets = {}
+        self.bullets = []
         self.speed = 400 # mph
         self.bullet_speed = 700 # mph
         self.total_time = 0 # in hours
@@ -317,27 +307,6 @@ class BattleEnvironment(gym.Env):
             'obase_y': (obase_pos[1] / self.width) * 2 - 1,
             'time': self.total_time / self.max_time
         }
-
-        for idx, bullet in self.bullets.items():
-            if bullet is not None:
-                bullet_pos = bullet.get_pos()
-                bullet_direction = bullet.get_direction()
-                angle_to_plane = get_angle(bullet_pos, fplane_pos) - bullet_direction
-                dct[f'bullet_{idx}_shot'] = 1
-                dct[f'bullet_{idx}_team'] = 0 if bullet.fteam == 'red' else 1
-                dct[f'bullet_{idx}_x'] = (bullet_pos[0] / self.width) * 2 - 1
-                dct[f'bullet_{idx}_y'] = (bullet_pos[1] / self.height) * 2 - 1
-                dct[f'bullet_{idx}_direction'] = (bullet_direction / self.height) * 2 - 1
-                dct[f'bullet_{idx}_dist_to_plane'] = (dist(bullet_pos, fplane_pos)) * 2 - 1
-                dct[f'bullet_{idx}_angle_to_plane'] = angle_to_plane / 360
-            else:
-                dct[f'bullet_{idx}_shot'] = -1
-                dct[f'bullet_{idx}_team'] = -1
-                dct[f'bullet_{idx}_x'] = -1
-                dct[f'bullet_{idx}_y'] = -1
-                dct[f'bullet_{idx}_direction'] = -1
-                dct[f'bullet_{idx}_dist_to_plane'] = -1
-                dct[f'bullet_{idx}_angle_to_plane'] = -1
         return np.array([x for x in dct.values()], dtype=np.float32)
 
     def reset(self): # return observation
@@ -353,7 +322,7 @@ class BattleEnvironment(gym.Env):
             plane.reset()
 
         self.total_time = 0
-        self.bullets = {n: None for n in range(self.max_bullets)}
+        self.bullets = []
 
         if self.show:
             pygame.init()
@@ -389,25 +358,24 @@ class BattleEnvironment(gym.Env):
         self._process_action(random.randint(0, 3), self.friendly, self.opponent)        
 
         # Check if bullets hit and move them
-        for key, bullet in self.bullets.items():
-            if bullet is not None:
-                outcome = bullet.update(self.width, self.height, self.time_step)
-                if outcome == 'miss':
-                    reward = reward + self.miss_punishment if bullet.fteam == 'red' else 0
-                    self.bullets[key].kill()
-                    self.bullets[key] = None
-                elif outcome == 'base' or outcome == 'plane': # If a bullet hit
-                    self.winner = bullet.fteam
-                    self.team[self.winner]['wins'] += 1
-                    if bullet.fteam == 'red':
-                        reward = reward + self.hit_base_reward if outcome == 'base' else reward + self.hit_plane_reward
-                    else:
-                        reward += self.lose_punishment
-                    self.done = True
-                    if self.show:
-                        self.render()
-                        print(f"{self.winner} wins")
-                    return self._get_observation(), reward, self.done, {}
+        for bullet in self.bullets:
+            outcome = bullet.update(self.width, self.height, self.time_step)
+            if outcome == 'miss':
+                reward = reward + self.miss_punishment if bullet.fteam == 'red' else 0
+                self.bullets[self.bullets.index(bullet)].kill()
+                self.bullets.pop(self.bullets.index(bullet))
+            elif outcome == 'base' or outcome == 'plane': # If a bullet hit
+                self.winner = bullet.fteam
+                self.team[self.winner]['wins'] += 1
+                if bullet.fteam == 'red':
+                    reward = reward + self.hit_base_reward if outcome == 'base' else reward + self.hit_plane_reward
+                else:
+                    reward += self.lose_punishment
+                self.done = True
+                if self.show:
+                    self.render()
+                    print(f"{self.winner} wins")
+                return self._get_observation(), reward, self.done, {}
             
         # Check if past half of max time and give punishment
         if (self.total_time > self.max_time//2):
@@ -446,11 +414,7 @@ class BattleEnvironment(gym.Env):
 
          # --------------- SHOOT ---------------
         elif action == 1:
-            if any([v is None for v in self.bullets.values()]):
-                for k, v in self.bullets.items():
-                    if v is None:
-                        self.bullets[k] = Bullet(fplane_pos[0], fplane_pos[1], fplane_angle, self.bullet_speed, fteam, self.team[oteam])
-                        break
+            self.bullets.append(Bullet(fplane_pos[0], fplane_pos[1], fplane_angle, self.bullet_speed, fteam, self.team[oteam]))
             fplane.forward(self.speed, self.time_step)
         
         # --------------- TURN RIGHT / TURN TO ENEMY PLANE ---------------
@@ -530,9 +494,8 @@ class BattleEnvironment(gym.Env):
             self.display.fill(WHITE)
 
             # Draw bullets
-            for bullet in self.bullets.values():
-                if bullet is not None:
-                    bullet.draw(self.display)
+            for bullet in self.bullets:
+                bullet.draw(self.display)
                     
             # Draw bases
             self.team['red']['base'].draw(self.display)
