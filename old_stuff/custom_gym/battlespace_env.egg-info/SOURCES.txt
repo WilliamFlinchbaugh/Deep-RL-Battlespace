@@ -1,0 +1,9 @@
+setup.py
+battlespace_env.egg-info/PKG-INFO
+battlespace_env.egg-info/SOURCES.txt
+battlespace_env.egg-info/dependency_links.txt
+battlespace_env.egg-info/requires.txt
+battlespace_env.egg-info/top_level.txt
+envs/__init__.py
+envs/battlespace_env_dir/__init__.py
+envs/battlespace_env_dir/battlespace_env.py
