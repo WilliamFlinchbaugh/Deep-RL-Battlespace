@@ -2,7 +2,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
 from battle_environment import BattleEnvironment
 import os
-FOLDER = 'results/PPO_3'
+FOLDER = 'results/PPO_0'
 LOG_DIR = f'{FOLDER}/logs/'
 if not os.path.exists(LOG_DIR):
     os.makedirs(LOG_DIR)
