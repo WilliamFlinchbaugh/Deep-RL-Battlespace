@@ -26,13 +26,13 @@ class TrainAndLoggingCallback(BaseCallback):
 
 CHECKPOINT_DIR = f'{FOLDER}/train/'
 save_freq = 50000
-timesteps = 500000
+timesteps = 1000000
 saved_timesteps = timesteps // save_freq * save_freq
 
 # ---------- TRAINING ----------
 callback = TrainAndLoggingCallback(check_freq=save_freq, save_path=CHECKPOINT_DIR)
-env = BattleEnvironment(show=False, hit_base_reward=20, hit_plane_reward=20, miss_punishment=-1, too_long_punishment=0, closer_to_base_reward=0, 
-    closer_to_plane_reward=0, lose_punishment=-15)
+env = BattleEnvironment(show=False, hit_base_reward=100, hit_plane_reward=100, miss_punishment=-5, too_long_punishment=0, closer_to_base_reward=0, 
+    closer_to_plane_reward=0, lose_punishment=-30, fps=240)
 config = [env.hit_base_reward, env.hit_plane_reward, env.miss_punishment, env.too_long_punishment, env.closer_to_base_reward, env.closer_to_plane_reward, env.lose_punishment]
 model = PPO('MlpPolicy', env, tensorboard_log=LOG_DIR, verbose=1)
 model.learn(total_timesteps=timesteps, callback=callback)
@@ -41,15 +41,15 @@ del model
 # # ---------- EVALUATION ----------
 model = PPO.load(f'{CHECKPOINT_DIR}best_model_{saved_timesteps}')
 env = BattleEnvironment(show=True, hit_base_reward=config[0], hit_plane_reward=config[1], miss_punishment=config[2], too_long_punishment=config[3], closer_to_base_reward=config[4], 
-    closer_to_plane_reward=config[5], lose_punishment=config[6], fps=30)
-episodes = 1000
+    closer_to_plane_reward=config[5], lose_punishment=config[6], fps=60)
+episodes = 500
 for episode in range(episodes): # Evaluates the model n times
     state = env.reset()
     score = 0
     while not env.done:
         env.render()
-        action, _states = model.predict(state)
-        # action = env.action_space.sample()
+        # action, _states = model.predict(state)
+        action = env.action_space.sample()
         n_state, reward, done, info = env.step(action)
         score += reward
     if (episode+1) % 10 == 0:
@@ -68,7 +68,8 @@ for episode in range(episodes): # Evaluates the model n times
     score = 0
     while not env.done:
         env.render()
-        action = env.action_space.sample()
+        action, _states = model.predict(state)
+        # action = env.action_space.sample()
         n_state, reward, done, info = env.step(action)
         score += reward
     print('Episode:{} Score:{}'.format(episode+1, score))
