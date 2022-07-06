@@ -13,6 +13,7 @@ Controls: move the mouse near the axes.
 import pygame, sys, os
 from pygame.locals import *
 from math import atan2, degrees, pi
+import math
 
 def quit():
     pygame.quit()
@@ -42,6 +43,12 @@ font = pygame.font.Font(None, 30)
 
 arcRect = pygame.Rect(180, 180, 40, 40)
 
+def calc_new_xy(old_xy, dist, angle):
+    new_x = old_xy[0] + (dist*math.cos(-math.radians(angle)))
+    new_y = old_xy[1] + (dist*math.sin(-math.radians(angle)))
+    return (new_x, new_y)
+
+cursor_angle = 0
 #Game loop
 while True:
     time_passed = clock.tick(FPS)
@@ -57,17 +64,17 @@ while True:
             if 0 < event.pos[0] < 400 and 0 < event.pos[1] < 400:
                 pos = event.pos
 
-    cursor_angle = 90 # because y axis inverted
 
     #Angle logic
     dx = pos[0] - origin[0]
     dy = pos[1] - origin[1]
-    rads = atan2(-dy,dx)
+    rads = atan2(dy,dx)
     rads %= 2*pi
     degs = degrees(rads)
 
-    rel_angle = cursor_angle - degs
+    rel_angle = 180 + cursor_angle - (360 - degs)
     if rel_angle < -180: rel_angle += 360
+    if rel_angle > 180: rel_angle -= 360
 
     screen.fill(white)
 
@@ -82,10 +89,9 @@ while True:
     screen.blit(font.render("0", True, black), (360, 190))
 
     #Draw lines to cursor
-    pygame.draw.line(screen, black, (pos[0], pos[1]), (pos[0], pos[1] + 100))
+    pygame.draw.line(screen, black, (pos[0], pos[1]), calc_new_xy((pos[0], pos[1]), 100, cursor_angle))
     pygame.draw.line(screen, blue, origin, (pos[0], origin[1]), 2)
     pygame.draw.line(screen, purple, origin, pos, 2)
-    pygame.draw.arc(screen, green, arcRect, 0, rads, 4)
     pygame.draw.line(screen, red, (pos[0], origin[1]), (pos[0], pos[1]), 2)
     #Note that the function expects angles in radians
 
@@ -96,4 +102,10 @@ while True:
     screen.blit(font.render(str(degs)+" degrees", True, green), (10, 510))
     screen.blit(font.render(str(rel_angle)+" relative to cursor", True, green), (10, 410))
 
+
     pygame.display.flip() 
+
+    if rel_angle < 0:
+        cursor_angle += 1
+    else:
+        cursor_angle -= 1

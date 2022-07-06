@@ -19,14 +19,16 @@ DISP_WIDTH = 1000
 DISP_HEIGHT = 1000
 
 # ---------- HELPER FUNCTIONS -----------
-def get_angle(p0, p1):
-    dx = p1[0] - p0[0]
-    dy = p1[1] - p0[1]
-    rads = math.atan2(-dy,dx)
+def rel_angle(p0, a0, p1):
+    dx = p0[0] - p1[0]
+    dy = p0[1] - p1[1]
+    rads = math.atan2(dy,dx)
     rads %= 2*math.pi
     degs = math.degrees(rads)
-    if degs < -180: degs += 360
-    return degs
+    rel_angle = 180 + a0 - (360 - degs)
+    if rel_angle < -180: rel_angle += 360
+    if rel_angle > 180: rel_angle -= 360
+    return rel_angle
 
 def dist(p1,p0):
     return math.sqrt((p1[0]-p0[0])**2 + (p1[1]-p0[1])**2)
@@ -34,7 +36,7 @@ def dist(p1,p0):
 def blitRotate(image, pos, originPos, angle):
 
     # offset from pivot to center
-    image_rect = image.get_rect(topleft = (pos[0] - originPos[0], pos[1]-originPos[1]))
+    image_rect = image.get_rect(topleft = (pos[0] - originPos[0], pos[1] - originPos[1]))
     offset_center_to_pivot = pygame.math.Vector2(pos) - image_rect.center
     
     # roatated offset from pivot to center
@@ -66,16 +68,15 @@ class Plane:
 
     def reset(self):
         if self.team == 'red':
-            x = (DISP_WIDTH - self.w/2)/3 * random.random()
-            y = (DISP_HEIGHT - self.h/2) * random.random()
+            x = (DISP_WIDTH - self.w)/4 * random.random()
+            y = (DISP_HEIGHT - self.h)/2 * random.random()
             self.rect.center = (x, y)
-            self.direction = 90 * random.random() if random.random() < .5 else 90 * random.random() + 270
-            
+            self.direction = 90 * random.random()
         else:
-            x = (DISP_WIDTH - self.w/2)/3 * random.random() + (DISP_WIDTH - self.w/2)/3*2
-            y = (DISP_HEIGHT - self.h/2) * random.random()
+            x = (DISP_WIDTH - self.w)/4 * random.random() + (DISP_WIDTH - self.w/2)/4*3
+            y = (DISP_HEIGHT - self.h)/2 * random.random() + (DISP_HEIGHT - self.h/2)/2
             self.rect.center = (x, y)
-            self.direction = 180 * random.random() + 90
+            self.direction = 90 * random.random() + 180
         
     def rotate(self, angle):
         self.direction += angle
@@ -142,12 +143,12 @@ class Base:
         
     def reset(self):
         if self.team == 'red':
-            x = (DISP_WIDTH - self.w/2)/3 * random.random()
-            y = (DISP_HEIGHT - self.h/2) * random.random()
+            x = (DISP_WIDTH - self.w)/4 * random.random()
+            y = (DISP_HEIGHT - self.h)/2 * random.random()
             self.rect.center = (x, y)
         else:
-            x = (DISP_WIDTH - self.w/2)/3 * random.random() + (DISP_WIDTH - self.w/2)/3*2
-            y = (DISP_HEIGHT - self.h/2) * random.random()
+            x = (DISP_WIDTH - self.w)/4 * random.random() + (DISP_WIDTH - self.w/2)/4*3
+            y = (DISP_HEIGHT - self.h)/2 * random.random() + (DISP_HEIGHT - self.h/2)/2
             self.rect.center = (x, y)
 
     def draw(self, surface):
@@ -158,13 +159,14 @@ class Base:
 
 # ---------- BULLET CLASS ----------
 class Bullet(pygame.sprite.Sprite):
-    def __init__(self, x, y, angle, speed, fteam, oteam):
+    def __init__(self, x, y, angle, speed, fcolor, oplanes, obase):
         pygame.sprite.Sprite.__init__(self)
         self.off_screen = False
         self.image = pygame.Surface((6, 3), pygame.SRCALPHA)
-        self.fteam = fteam
-        self.color = RED if self.fteam == 'red' else BLUE
-        self.oteam = oteam
+        self.fcolor = fcolor
+        self.color = RED if self.fcolor == 'red' else BLUE
+        self.oplanes = oplanes
+        self.obase = obase
         self.image.fill(self.color)
         self.rect = self.image.get_rect(center=(x, y))
         self.w, self.h = self.image.get_size()
@@ -172,7 +174,7 @@ class Bullet(pygame.sprite.Sprite):
         self.pos = (x, y)
         self.speed = speed
         self.dist_travelled = 0
-        self.max_dist = 600
+        self.max_dist = 500
 
     def update(self, screen_width, screen_height, time):
         oldpos = self.rect.center
@@ -182,10 +184,10 @@ class Bullet(pygame.sprite.Sprite):
             return 'miss'
         elif self.rect.centerx > screen_width or self.rect.centerx < 0 or self.rect.centery > screen_height or self.rect.centery < 0:
             return 'miss'
-        for plane in self.oteam['planes']:
+        for plane in self.oplanes:
             if self.rect.colliderect(plane.rect):
                 return 'plane'
-        if self.rect.colliderect(self.oteam['base'].rect):
+        if self.rect.colliderect(self.obase.rect):
             return 'base'
         return 'none'
 
@@ -202,7 +204,7 @@ class Bullet(pygame.sprite.Sprite):
 # ----------- BATTLE ENVIRONMENT -----------
 class BattleEnvironment(gym.Env):
     def __init__(self, show=False, hit_base_reward=100, hit_plane_reward=100, miss_punishment=-5, too_long_punishment=0, closer_to_base_reward=0, 
-        closer_to_plane_reward=0, lose_punishment=-50, fps=20):
+        closer_to_plane_reward=0, lose_punishment=-50, fps=60):
         super(BattleEnvironment, self).__init__()
 
         self.width = DISP_WIDTH
@@ -248,8 +250,8 @@ class BattleEnvironment(gym.Env):
         self.team['blue']['wins'] = 0
         self.ties = 0
         self.bullets = []
-        self.speed = 400 # mph
-        self.bullet_speed = 700 # mph
+        self.speed = 150 # mph
+        self.bullet_speed = 300 # mph
         self.total_time = 0 # in hours
         self.time_step = 0.1 # hours per time step
         self.show = show # show the pygame animation
@@ -266,8 +268,6 @@ class BattleEnvironment(gym.Env):
         self.reset()
     
     def _get_observation(self):
-        # Observation: Observation: fplane_pos, fplane_angle, obase_pos, oplane_pos, time
-        # This code will all have to be changed when adding multiple planes
         fplane = self.team['red']['planes'][0]
         fbase = self.team['red']['base']
         oplane = self.team['blue']['planes'][0]
@@ -280,15 +280,11 @@ class BattleEnvironment(gym.Env):
         oplane_direction = oplane.get_direction()
         obase_pos = obase.get_pos()
 
-        angle_to_oplane = get_angle(fplane_pos, oplane_pos)
-        angle_to_obase = get_angle(fplane_pos, obase_pos)
-        rel_angle_oplane = (angle_to_oplane - fplane_direction)
-        rel_angle_obase = (angle_to_obase - fplane_direction)
+        rel_angle_oplane = rel_angle(fplane_pos, fplane_direction, oplane_pos)
+        rel_angle_obase = rel_angle(fplane_pos, fplane_direction, obase_pos)
 
-        angle_to_fplane = get_angle(oplane_pos, fplane_pos)
-        angle_to_fbase = get_angle(oplane_pos, fbase_pos)
-        rel_angle_fplane = (angle_to_fplane - oplane_direction)
-        rel_angle_fbase = (angle_to_fbase - oplane_direction)
+        rel_angle_fplane = rel_angle(oplane_pos, oplane_direction, fplane_pos)
+        rel_angle_fbase = rel_angle(oplane_pos, oplane_direction, fbase_pos)
 
         dct = {
             'fplane_x': (fplane_pos[0] / self.width) * 2 - 1,
@@ -348,26 +344,22 @@ class BattleEnvironment(gym.Env):
             return self._get_observation(), 0, self.done, {}
 
         # Red turn
-        self.friendly = 'red'
-        self.opponent = 'blue'
-        reward += self._process_action(action, self.friendly, self.opponent)
+        reward += self._process_action(random.randint(0, 3), 'red', 'blue')
         
         # Blue turn
-        self.friendly = 'blue'
-        self.opponent = 'red'
-        self._process_action(random.randint(0, 3), self.friendly, self.opponent)        
+        self._process_action(random.randint(0, 3), 'blue', 'red')        
 
         # Check if bullets hit and move them
         for bullet in self.bullets:
             outcome = bullet.update(self.width, self.height, self.time_step)
             if outcome == 'miss':
-                reward = reward + self.miss_punishment if bullet.fteam == 'red' else 0
+                reward = reward + self.miss_punishment if bullet.fcolor == 'red' else 0
                 self.bullets[self.bullets.index(bullet)].kill()
                 self.bullets.pop(self.bullets.index(bullet))
             elif outcome == 'base' or outcome == 'plane': # If a bullet hit
-                self.winner = bullet.fteam
+                self.winner = bullet.fcolor
                 self.team[self.winner]['wins'] += 1
-                if bullet.fteam == 'red':
+                if self.winner == 'red':
                     reward = reward + self.hit_base_reward if outcome == 'base' else reward + self.hit_plane_reward
                 else:
                     reward += self.lose_punishment
@@ -389,24 +381,23 @@ class BattleEnvironment(gym.Env):
     def _process_action(self, action, fteam, oteam): # friendly and opponent teams
         reward = 0
 
+        fcolor = fteam
+        ocolor = oteam
+
         fplane = self.team[fteam]['planes'][0]
         obase = self.team[oteam]['base']
         oplane = self.team[oteam]['planes'][0]
 
         fplane_pos = fplane.get_pos()
-        fplane_angle = fplane.get_direction()
+        fplane_direction = fplane.get_direction()
         obase_pos = obase.get_pos()
         oplane_pos = oplane.get_pos()
 
         dist_oplane = dist(oplane_pos, fplane_pos)
         dist_obase = dist(obase_pos, fplane_pos)
 
-        angle_to_oplane = get_angle(fplane_pos, oplane_pos)
-        angle_to_obase = get_angle(fplane_pos, obase_pos)
-        rel_angle_oplane = (angle_to_oplane - fplane_angle)
-        if rel_angle_oplane < -180: rel_angle_oplane += 360
-        rel_angle_obase = (angle_to_obase - fplane_angle)
-        if rel_angle_obase < -180: rel_angle_obase += 360
+        rel_angle_oplane = rel_angle(fplane_pos, fplane_direction, oplane_pos)
+        rel_angle_obase = rel_angle(fplane_pos, fplane_direction, obase_pos)
 
         # --------------- FORWARD ---------------
         if action == 0: 
@@ -414,27 +405,27 @@ class BattleEnvironment(gym.Env):
 
          # --------------- SHOOT ---------------
         elif action == 1:
-            self.bullets.append(Bullet(fplane_pos[0], fplane_pos[1], fplane_angle, self.bullet_speed, fteam, self.team[oteam]))
+            self.bullets.append(Bullet(fplane_pos[0], fplane_pos[1], fplane_direction, self.bullet_speed, fcolor, self.team[ocolor]['planes'], self.team[oteam]['base']))
             fplane.forward(self.speed, self.time_step)
         
-        # --------------- TURN RIGHT / TURN TO ENEMY PLANE ---------------
+        # --------------- TURN TO ENEMY PLANE ---------------
         elif action == 2:
             if math.fabs(rel_angle_oplane) < self.step_turn:
-                fplane.rotate(rel_angle_oplane)
+                fplane.rotate(-rel_angle_oplane)
             elif rel_angle_oplane < 0:
-                fplane.rotate(-self.step_turn)
-            else:
                 fplane.rotate(self.step_turn)
+            else:
+                fplane.rotate(-self.step_turn)
             fplane.forward(self.speed, self.time_step)
 
-        # ---------------- TURN LEFT / TURN TO ENEMY BASE ----------------
+        # ---------------- TURN TO ENEMY BASE ----------------
         elif action == 3:
             if math.fabs(rel_angle_obase) < self.step_turn:
-                fplane.rotate(rel_angle_obase)
+                fplane.rotate(-rel_angle_obase)
             elif rel_angle_obase < 0:
-                fplane.rotate(-self.step_turn)
-            else:
                 fplane.rotate(self.step_turn)
+            else:
+                fplane.rotate(-self.step_turn)
             fplane.forward(self.speed, self.time_step)
 
         # ---------------- GIVE REWARDS IF CLOSER (DIST OR ANGLE) ----------------
@@ -490,6 +481,8 @@ class BattleEnvironment(gym.Env):
                     self.done = True
                     sys.exit()
                     
+            font = pygame.font.Font('freesansbold.ttf', 12)
+
             # Fill background
             self.display.fill(WHITE)
 
@@ -505,9 +498,12 @@ class BattleEnvironment(gym.Env):
             for plane in self.team['red']['planes']:
                 plane.update()
                 plane.draw(self.display)
+                pygame.draw.line(self.display, BLACK, plane.get_pos(), calc_new_xy(plane.get_pos(), 200, 1, plane.get_direction()), 1)
             for plane in self.team['blue']['planes']:
                 plane.update()
                 plane.draw(self.display)
+                pygame.draw.line(self.display, BLACK, plane.get_pos(), calc_new_xy(plane.get_pos(), 200, 1, plane.get_direction()), 1)
+
 
             # Winner Screen
             if self.done:

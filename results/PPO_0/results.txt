@@ -1,3 +1,0 @@
-Wins by red: 26
-Wins by blue: 61
-Tied games: 13
