@@ -59,15 +59,18 @@ def calc_new_xy(old_xy, speed, time, angle):
 
 # ---------- PLANE CLASS ----------
 class Plane:
-    def __init__(self, team): 
+    def __init__(self, team):
         self.team = team
+        self.color = RED if self.team == 'red' else BLUE
         self.image = pygame.image.load(f"assets/{team}_plane.png")
         self.w, self.h = self.image.get_size()
         self.direction = 0
         self.rect = self.image.get_rect()
+        self.hp = 10
         self.reset()
 
     def reset(self):
+        self.hp = 6
         if self.team == 'red':
             x = (DISP_WIDTH - self.w)/4 * random.random() + self.w/2
             y = (DISP_HEIGHT - self.h)/2 * random.random() + self.h/2
@@ -112,9 +115,19 @@ class Plane:
         if self.rect.bottom >= DISP_HEIGHT:
             self.rect.bottom = DISP_HEIGHT
 
+    def hit(self):
+        self.hp -= 1
+        return self.hp
+
     def draw(self, surface):
         image, rect = blitRotate(self.image, self.rect.center, (self.w/2, self.h/2), self.direction)
         surface.blit(image, rect)
+        rect = pygame.Rect(0, 0, self.hp * 5, 10)
+        border_rect = pygame.Rect(0, 0, self.hp * 5 + 2, 12)
+        rect.center = (self.rect.centerx, self.rect.centery - 20)
+        border_rect.center = rect.center
+        pygame.draw.rect(surface, BLACK, border_rect, border_radius = 3)
+        pygame.draw.rect(surface, self.color, rect, border_radius = 3)
 
     def update(self):
         # Keep player on the screen
@@ -138,12 +151,15 @@ class Plane:
 class Base:
     def __init__(self, team):
         self.team = team
+        self.color = RED if self.team == 'red' else BLUE
         self.image = pygame.image.load(f"assets/{team}_base.png")
         self.w, self.h = self.image.get_size()
         self.rect = self.image.get_rect()
         self.reset()
+        self.hp = 3
         
     def reset(self):
+        self.hp = 3
         if self.team == 'red':
             x = (DISP_WIDTH - self.w)/4 * random.random() + self.w/2
             y = (DISP_HEIGHT - self.h) * random.random() + self.h/2
@@ -153,8 +169,18 @@ class Base:
             y = (DISP_HEIGHT - self.h) * random.random() + self.h/2
             self.rect.center = (x, y)
 
+    def hit(self):
+        self.hp -= 1
+        return self.hp
+
     def draw(self, surface):
         surface.blit(self.image, self.rect)
+        rect = pygame.Rect(0, 0, self.hp * 10, 10)
+        border_rect = pygame.Rect(0, 0, self.hp * 10 + 2, 12)
+        rect.center = (self.rect.centerx, self.rect.centery - 40)
+        border_rect.center = rect.center
+        pygame.draw.rect(surface, BLACK, border_rect, border_radius = 3)
+        pygame.draw.rect(surface, self.color, rect, border_radius = 3)
             
     def get_pos(self):
         return self.rect.center
@@ -177,6 +203,7 @@ class Bullet(pygame.sprite.Sprite):
         self.speed = speed
         self.dist_travelled = 0
         self.max_dist = 600
+        self.hit_plane = -1
 
     def update(self, screen_width, screen_height, time):
         oldpos = self.rect.center
@@ -186,8 +213,9 @@ class Bullet(pygame.sprite.Sprite):
             return 'miss'
         elif self.rect.centerx > screen_width or self.rect.centerx < 0 or self.rect.centery > screen_height or self.rect.centery < 0:
             return 'miss'
-        for plane in self.oplanes:
-            if self.rect.colliderect(plane.rect):
+        for i in range(len(self.oplanes)):
+            if self.rect.colliderect(self.oplanes[i].rect):
+                self.plane_hit = i
                 return 'plane'
         if self.rect.colliderect(self.obase.rect):
             return 'base'
@@ -196,7 +224,7 @@ class Bullet(pygame.sprite.Sprite):
     def draw(self, surface):
         image, rect = blitRotate(self.image, self.rect.center, (self.w/2, self.h/2), self.direction)
         surface.blit(image, rect)
-
+        
     def get_pos(self):
         return self.rect.center
     
@@ -219,23 +247,28 @@ class BattleEnvironment(gym.Env):
         obs_space = {
             'fplane_x': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
             'fplane_y': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
+            'fplane_hp': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
             'fplane_direction': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
             'rel_angle_oplane': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
             'rel_angle_obase': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
             'fbase_x': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
             'fbase_y': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
+            'fbase_hp': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
             'oplane_x': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
             'oplane_y': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
+            'oplane_hp': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
             'oplane_direction': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
             'rel_angle_fplane': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
             'rel_angle_fbase': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
             'obase_x': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
             'obase_y': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
+            'obase_hp': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
             'time': spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
         }
 
         for i in range(self.max_bullets):
             obs_space[f'bullet_{i}_shot'] = spaces.Box(-1, 1, dtype=np.int16, shape=(1,))
+            obs_space[f'bullet_{i}_team'] = spaces.Box(-1, 1, dtype=np.int16, shape=(1,))
             obs_space[f'bullet_{i}_x'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
             obs_space[f'bullet_{i}_y'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
             obs_space[f'bullet_{i}_direction'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
@@ -263,12 +296,12 @@ class BattleEnvironment(gym.Env):
         self.team['blue']['wins'] = 0
         self.ties = 0
         self.bullets = []
-        self.speed = 250 # mph
+        self.speed = 200 # mph
         self.bullet_speed = 400 # mph
         self.total_time = 0 # in hours
         self.time_step = 0.1 # hours per time step
         self.show = show # show the pygame animation
-        self.step_turn = 25 # degrees to turn per step
+        self.step_turn = 20 # degrees to turn per step
         self.hit_base_reward = hit_base_reward
         self.hit_plane_reward = hit_plane_reward
         self.miss_punishment = miss_punishment
@@ -299,18 +332,22 @@ class BattleEnvironment(gym.Env):
         dct = {
             'fplane_x': (fplane_pos[0] / self.width) * 2 - 1,
             'fplane_y': (fplane_pos[1] / self.height) * 2 - 1,
+            'fplane_hp': (fplane.hp / 10) * 2 - 1,
             'fplane_direction': (fplane_direction / 360) * 2 - 1,
             'rel_angle_oplane': rel_angle_oplane / 360,
             'rel_angle_obase': rel_angle_obase / 360,
             'fbase_x': (fbase_pos[0] / self.width) * 2 - 1,
             'fbase_y': (fbase_pos[1] / self.height) * 2 - 1,
+            'fbase_hp': (fbase.hp / 10) * 2 - 1,
             'oplane_x': (oplane_pos[0] / self.width) * 2 - 1,
             'oplane_y': (oplane_pos[1] / self.width) * 2 - 1,
+            'oplane_hp': (oplane.hp / 10) * 2 - 1,
             'oplane_direction': (oplane_direction / 360) * 2 - 1,
             'rel_angle_fplane': rel_angle_fplane / 360,
             'rel_angle_fbase': rel_angle_fbase / 360,
             'obase_x': (obase_pos[0] / self.width) * 2 - 1,
             'obase_y': (obase_pos[1] / self.width) * 2 - 1,
+            'obase_hp': (obase.hp / 10) * 2 - 1,
             'time': self.total_time / self.max_time
         }
         
@@ -318,6 +355,7 @@ class BattleEnvironment(gym.Env):
             if i < len(self.bullets):
                 bullet = self.bullets[i]
                 dct[f'bullet_{i}_shot'] = 1
+                dct[f'bullet_{i}_team'] = 1 if bullet.fcolor == 'red' else 0
                 dct[f'bullet_{i}_x'] = (bullet.get_pos()[0] / self.width) * 2 - 1
                 dct[f'bullet_{i}_y'] = (bullet.get_pos()[1] / self.height) * 2 - 1
                 dct[f'bullet_{i}_direction'] = (bullet.get_direction() / 360) * 2 - 1
@@ -326,13 +364,14 @@ class BattleEnvironment(gym.Env):
                 dct[f'bullet_{i}_fbase_angle'] = rel_angle(bullet.get_pos(), bullet.get_direction(), fbase_pos) / 360
             else:
                 dct[f'bullet_{i}_shot'] = -1
+                dct[f'bullet_{i}_team'] = -1
                 dct[f'bullet_{i}_x'] = -1
                 dct[f'bullet_{i}_y'] = -1
                 dct[f'bullet_{i}_direction'] = -1
                 dct[f'bullet_{i}_dist_to_plane'] = -1
                 dct[f'bullet_{i}_fplane_angle'] = -1
                 dct[f'bullet_{i}_fbase_angle'] = -1
-                
+
         return np.array([x for x in dct.values()], dtype=np.float32)
 
     def reset(self): # return observation
@@ -384,18 +423,39 @@ class BattleEnvironment(gym.Env):
             if outcome == 'miss':
                 reward = reward + self.miss_punishment if bullet.fcolor == 'red' else 0
                 self.bullets.remove(bullet)
-            elif outcome == 'base' or outcome == 'plane': # If a bullet hit
-                self.winner = bullet.fcolor
-                self.team[self.winner]['wins'] += 1
-                if self.winner == 'red':
-                    reward = reward + self.hit_base_reward if outcome == 'base' else reward + self.hit_plane_reward
+
+            elif outcome == 'base': # bullet hits base
+                newhp = bullet.obase.hit()
+                reward = reward + self.hit_base_reward if bullet.fcolor == 'red' else 0
+                if newhp <= 0: # won the game
+                    self.winner = bullet.fcolor
+                    self.team[bullet.fcolor]['wins'] += 1
+                    if not self.winner == 'red':
+                        reward += self.lose_punishment
+                    self.done = True
+                    if self.show:
+                        self.render()
+                        print(f"{self.winner} wins")
+                        return self._get_observation(), reward, self.done, {}
                 else:
-                    reward += self.lose_punishment
-                self.done = True
-                if self.show:
-                    self.render()
-                    print(f"{self.winner} wins")
-                return self._get_observation(), reward, self.done, {}
+                    self.bullets.remove(bullet)
+            
+            elif outcome == 'plane': # bullet hits plane
+                i = bullet.hit_plane
+                newhp = bullet.oplanes[i].hit()
+                reward = reward + self.hit_plane_reward if bullet.fcolor == 'red' else 0
+                if newhp <= 0: # won the game
+                    self.winner = bullet.fcolor
+                    self.team[bullet.fcolor]['wins'] += 1
+                    if not self.winner == 'red':
+                        reward += self.lose_punishment
+                    self.done = True
+                    if self.show:
+                        self.render()
+                        print(f"{self.winner} wins")
+                        return self._get_observation(), reward, self.done, {}
+                else:
+                    self.bullets.remove(bullet)
             
         # Check if past half of max time and give punishment
         if (self.total_time > self.max_time//2):
@@ -456,6 +516,16 @@ class BattleEnvironment(gym.Env):
             else:
                 fplane.rotate(-self.step_turn)
             fplane.forward(self.speed, self.time_step)
+
+        # # ---------- TURN RIGHT ----------
+        # elif action == 2:
+        #     fplane.rotate(self.step_turn)
+        #     fplane.forward(self.speed, self.time_step)
+
+        # # ---------- TURN LEFT ----------
+        # elif action == 3:
+        #     fplane.rotate(-self.step_turn)
+        #     fplane.forward(self.speed, self.time_step)
 
         # ---------------- GIVE REWARDS IF CLOSER (DIST OR ANGLE) ----------------
         new_fplane_pos = fplane.get_pos()

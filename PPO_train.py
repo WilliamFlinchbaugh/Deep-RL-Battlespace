@@ -5,11 +5,12 @@ import os
 
 for i in range(100):
     if not os.path.exists(f'models/PPO_{i}'):
-        FOLDER =  f'models\PPO_{i}'
-        LOG_DIR = f'{FOLDER}\logs'
+        FOLDER =  f'models/PPO_{i}'
+        LOG_DIR = f'{FOLDER}/logs'
         os.makedirs(FOLDER)
         os.makedirs(LOG_DIR)
         break
+# FOLDER = 'models/PPO_1'
 
 # ---------- CALLBACK ----------
 class TrainAndLoggingCallback(BaseCallback):
@@ -28,22 +29,22 @@ class TrainAndLoggingCallback(BaseCallback):
             self.model.save(model_path)
         return True
 
-CHECKPOINT_DIR = f'{FOLDER}\train'
+CHECKPOINT_DIR = f'{FOLDER}/train'
 save_freq = 10000
-timesteps = 500000
+timesteps = 100000
 saved_timesteps = timesteps // save_freq * save_freq
 
 # ---------- TRAINING ----------
 callback = TrainAndLoggingCallback(check_freq=save_freq, save_path=CHECKPOINT_DIR)
-env = BattleEnvironment(show=False, hit_base_reward=1, hit_plane_reward=1, miss_punishment=0, too_long_punishment=0, closer_to_base_reward=0, 
-    closer_to_plane_reward=0, lose_punishment=-1)
+env = BattleEnvironment(show=False, hit_base_reward=100, hit_plane_reward=100, miss_punishment=-5, too_long_punishment=0, closer_to_base_reward=0, 
+    closer_to_plane_reward=0, lose_punishment=-25)
 config = [env.hit_base_reward, env.hit_plane_reward, env.miss_punishment, env.too_long_punishment, env.closer_to_base_reward, env.closer_to_plane_reward, env.lose_punishment]
 model = PPO('MlpPolicy', env, tensorboard_log=LOG_DIR, verbose=1)
 model.learn(total_timesteps=timesteps, callback=callback)
 del model
 
 # ---------- EVALUATION WITHOUT VISUALS ----------
-model = PPO.load(f'{CHECKPOINT_DIR}{saved_timesteps}')
+model = PPO.load(f'{CHECKPOINT_DIR}/{saved_timesteps}')
 env = BattleEnvironment(show=False, hit_base_reward=config[0], hit_plane_reward=config[1], miss_punishment=config[2], too_long_punishment=config[3], closer_to_base_reward=config[4], 
     closer_to_plane_reward=config[5], lose_punishment=config[6])
 episodes = 1000
@@ -64,7 +65,7 @@ with open(f'{FOLDER}/results.txt', 'w') as f:
     print(f"---EVALUATION---\n{env.wins()}\n", file=f)
 
 # ---------- EVALUATION WITH VISUALS ----------
-model = PPO.load(f'{CHECKPOINT_DIR}best_model_{saved_timesteps}')
+model = PPO.load(f'{CHECKPOINT_DIR}/{saved_timesteps}')
 env = BattleEnvironment(show=True, hit_base_reward=config[0], hit_plane_reward=config[1], miss_punishment=config[2], too_long_punishment=config[3], closer_to_base_reward=config[4], 
     closer_to_plane_reward=config[5], lose_punishment=config[6], fps=60)
 episodes = 100
