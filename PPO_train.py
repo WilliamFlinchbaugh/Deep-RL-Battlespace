@@ -31,7 +31,7 @@ class TrainAndLoggingCallback(BaseCallback):
 
 CHECKPOINT_DIR = f'{FOLDER}/train'
 save_freq = 10000
-timesteps = 100000
+timesteps = 1000000
 saved_timesteps = timesteps // save_freq * save_freq
 
 # ---------- TRAINING ----------
@@ -48,6 +48,7 @@ model = PPO.load(f'{CHECKPOINT_DIR}/{saved_timesteps}')
 env = BattleEnvironment(show=False, hit_base_reward=config[0], hit_plane_reward=config[1], miss_punishment=config[2], too_long_punishment=config[3], closer_to_base_reward=config[4], 
     closer_to_plane_reward=config[5], lose_punishment=config[6])
 episodes = 1000
+avg = 0
 for episode in range(episodes): # Evaluates the model n times
     state = env.reset()
     score = 0
@@ -57,8 +58,12 @@ for episode in range(episodes): # Evaluates the model n times
         # action = env.action_space.sample()
         n_state, reward, done, info = env.step(action)
         score += reward
-    if (episode+1) % 50 == 0:
-        print('# Episodes:{} Avg Score:{}'.format(episode+1, score/10))
+        avg += reward
+
+    if episode % 50 == 0:
+        print('# Episodes:{} Avg Score:{}'.format(episode, avg/50))
+        avg = 0
+
 print(env.wins())
 with open(f'{FOLDER}/results.txt', 'w') as f:
     print(f"---CONSTANTS---\nhit base:{config[0]}\nhit plane:{config[1]}\nmiss:{config[2]}\ntoo long:{config[3]}\ncloser to base:{config[4]}\ncloser to plane:{config[5]}\nlose:{config[6]}\n", file=f)
@@ -67,7 +72,7 @@ with open(f'{FOLDER}/results.txt', 'w') as f:
 # ---------- EVALUATION WITH VISUALS ----------
 model = PPO.load(f'{CHECKPOINT_DIR}/{saved_timesteps}')
 env = BattleEnvironment(show=True, hit_base_reward=config[0], hit_plane_reward=config[1], miss_punishment=config[2], too_long_punishment=config[3], closer_to_base_reward=config[4], 
-    closer_to_plane_reward=config[5], lose_punishment=config[6], fps=60)
+    closer_to_plane_reward=config[5], lose_punishment=config[6], fps=30)
 episodes = 100
 for episode in range(episodes): # Evaluates the model n times
     state = env.reset()
@@ -78,8 +83,9 @@ for episode in range(episodes): # Evaluates the model n times
         # action = env.action_space.sample()
         n_state, reward, done, info = env.step(action)
         score += reward
-    if (episode+1) % 10 == 0:
-        print('# Episodes:{} Avg Score:{}'.format(episode+1, score/10))
+    if episode % 10 == 0:
+        print('# Episodes:{} Avg Score:{}'.format(episode+1, avg/10))
+        avg = 0
 print(env.wins())
 with open(f'{FOLDER}/results.txt', 'w') as f:
     print(f"---VIZ EVALUATION---\n{env.wins()}\n", file=f)

@@ -66,7 +66,7 @@ class Plane:
         self.w, self.h = self.image.get_size()
         self.direction = 0
         self.rect = self.image.get_rect()
-        self.hp = 10
+        self.hp = 6
         self.reset()
 
     def reset(self):
@@ -187,13 +187,13 @@ class Base:
 
 # ---------- BULLET CLASS ----------
 class Bullet(pygame.sprite.Sprite):
-    def __init__(self, x, y, angle, speed, fcolor, oplanes, obase):
+    def __init__(self, x, y, angle, speed, fcolor, oplane, obase):
         pygame.sprite.Sprite.__init__(self)
         self.off_screen = False
         self.image = pygame.Surface((6, 3), pygame.SRCALPHA)
         self.fcolor = fcolor
         self.color = RED if self.fcolor == 'red' else BLUE
-        self.oplanes = oplanes
+        self.oplane = oplane
         self.obase = obase
         self.image.fill(self.color)
         self.rect = self.image.get_rect(center=(x, y))
@@ -203,7 +203,6 @@ class Bullet(pygame.sprite.Sprite):
         self.speed = speed
         self.dist_travelled = 0
         self.max_dist = 600
-        self.hit_plane = -1
 
     def update(self, screen_width, screen_height, time):
         oldpos = self.rect.center
@@ -213,10 +212,8 @@ class Bullet(pygame.sprite.Sprite):
             return 'miss'
         elif self.rect.centerx > screen_width or self.rect.centerx < 0 or self.rect.centery > screen_height or self.rect.centery < 0:
             return 'miss'
-        for i in range(len(self.oplanes)):
-            if self.rect.colliderect(self.oplanes[i].rect):
-                self.plane_hit = i
-                return 'plane'
+        if self.rect.colliderect(self.oplane.rect):
+            return 'plane'
         if self.rect.colliderect(self.obase.rect):
             return 'base'
         return 'none'
@@ -245,37 +242,11 @@ class BattleEnvironment(gym.Env):
 
         # ---------- Observation Space ----------
         obs_space = {
-            'fplane_x': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
-            'fplane_y': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
-            'fplane_hp': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
-            'fplane_direction': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
-            'rel_angle_oplane': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
-            'rel_angle_obase': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
-            'fbase_x': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
-            'fbase_y': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
-            'fbase_hp': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
-            'oplane_x': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
-            'oplane_y': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
-            'oplane_hp': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
-            'oplane_direction': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
-            'rel_angle_fplane': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
-            'rel_angle_fbase': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
-            'obase_x': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
-            'obase_y': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
-            'obase_hp': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
-            'time': spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
-        }
-
-        for i in range(self.max_bullets):
-            obs_space[f'bullet_{i}_shot'] = spaces.Box(-1, 1, dtype=np.int16, shape=(1,))
-            obs_space[f'bullet_{i}_team'] = spaces.Box(-1, 1, dtype=np.int16, shape=(1,))
-            obs_space[f'bullet_{i}_x'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
-            obs_space[f'bullet_{i}_y'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
-            obs_space[f'bullet_{i}_direction'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
-            obs_space[f'bullet_{i}_dist_to_plane'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
-            obs_space[f'bullet_{i}_fplane_angle'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
-            obs_space[f'bullet_{i}_fbase_angle'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
-            
+            'fplane_dist_oplane': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
+            'fplane_dist_obase': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
+            'fplane_angle_oplane': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
+            'fplane_angle_obase': spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
+        }   
 
         mins = np.array([x.low[0] for x in obs_space.values()])
         maxs = np.array([x.high[0] for x in obs_space.values()])
@@ -319,59 +290,21 @@ class BattleEnvironment(gym.Env):
 
         fplane_pos = fplane.get_pos()
         fplane_direction = fplane.get_direction()
-        fbase_pos = fbase.get_pos()
         oplane_pos = oplane.get_pos()
-        oplane_direction = oplane.get_direction()
         obase_pos = obase.get_pos()
 
-        rel_angle_oplane = rel_angle(fplane_pos, fplane_direction, oplane_pos)
-        rel_angle_obase = rel_angle(fplane_pos, fplane_direction, obase_pos)
-        rel_angle_fplane = rel_angle(oplane_pos, oplane_direction, fplane_pos)
-        rel_angle_fbase = rel_angle(oplane_pos, oplane_direction, fbase_pos)
+        fplane_dist_oplane = dist(fplane_pos, oplane_pos) / (math.sqrt(math.pow(self.width, 2) + math.pow(self.height, 2))) * 2 - 1
+        fplane_dist_obase = dist(fplane_pos, obase_pos) / (math.sqrt(math.pow(self.width, 2) + math.pow(self.height, 2))) * 2 - 1
+        rel_angle_oplane = rel_angle(fplane_pos, fplane_direction, oplane_pos) / 360
+        rel_angle_obase = rel_angle(fplane_pos, fplane_direction, obase_pos) / 360
 
         dct = {
-            'fplane_x': (fplane_pos[0] / self.width) * 2 - 1,
-            'fplane_y': (fplane_pos[1] / self.height) * 2 - 1,
-            'fplane_hp': (fplane.hp / 10) * 2 - 1,
-            'fplane_direction': (fplane_direction / 360) * 2 - 1,
-            'rel_angle_oplane': rel_angle_oplane / 360,
-            'rel_angle_obase': rel_angle_obase / 360,
-            'fbase_x': (fbase_pos[0] / self.width) * 2 - 1,
-            'fbase_y': (fbase_pos[1] / self.height) * 2 - 1,
-            'fbase_hp': (fbase.hp / 10) * 2 - 1,
-            'oplane_x': (oplane_pos[0] / self.width) * 2 - 1,
-            'oplane_y': (oplane_pos[1] / self.width) * 2 - 1,
-            'oplane_hp': (oplane.hp / 10) * 2 - 1,
-            'oplane_direction': (oplane_direction / 360) * 2 - 1,
-            'rel_angle_fplane': rel_angle_fplane / 360,
-            'rel_angle_fbase': rel_angle_fbase / 360,
-            'obase_x': (obase_pos[0] / self.width) * 2 - 1,
-            'obase_y': (obase_pos[1] / self.width) * 2 - 1,
-            'obase_hp': (obase.hp / 10) * 2 - 1,
-            'time': self.total_time / self.max_time
-        }
+            'fplane_dist_oplane': fplane_dist_oplane,
+            'fplane_dist_obase': fplane_dist_obase,
+            'fplane_angle_oplane': rel_angle_oplane,
+            'fplane_angle_obase': rel_angle_obase
+        }   
         
-        for i in range(self.max_bullets):
-            if i < len(self.bullets):
-                bullet = self.bullets[i]
-                dct[f'bullet_{i}_shot'] = 1
-                dct[f'bullet_{i}_team'] = 1 if bullet.fcolor == 'red' else 0
-                dct[f'bullet_{i}_x'] = (bullet.get_pos()[0] / self.width) * 2 - 1
-                dct[f'bullet_{i}_y'] = (bullet.get_pos()[1] / self.height) * 2 - 1
-                dct[f'bullet_{i}_direction'] = (bullet.get_direction() / 360) * 2 - 1
-                dct[f'bullet_{i}_dist_to_plane'] = (dist(bullet.get_pos(), fplane.get_pos()) / math.sqrt(math.pow(self.width, 2) + math.pow(self.height, 2))) * 2 - 1
-                dct[f'bullet_{i}_fplane_angle'] = rel_angle(bullet.get_pos(), bullet.get_direction(), fplane_pos) / 360
-                dct[f'bullet_{i}_fbase_angle'] = rel_angle(bullet.get_pos(), bullet.get_direction(), fbase_pos) / 360
-            else:
-                dct[f'bullet_{i}_shot'] = -1
-                dct[f'bullet_{i}_team'] = -1
-                dct[f'bullet_{i}_x'] = -1
-                dct[f'bullet_{i}_y'] = -1
-                dct[f'bullet_{i}_direction'] = -1
-                dct[f'bullet_{i}_dist_to_plane'] = -1
-                dct[f'bullet_{i}_fplane_angle'] = -1
-                dct[f'bullet_{i}_fbase_angle'] = -1
-
         return np.array([x for x in dct.values()], dtype=np.float32)
 
     def reset(self): # return observation
@@ -441,8 +374,7 @@ class BattleEnvironment(gym.Env):
                     self.bullets.remove(bullet)
             
             elif outcome == 'plane': # bullet hits plane
-                i = bullet.hit_plane
-                newhp = bullet.oplanes[i].hit()
+                newhp = bullet.oplane.hit()
                 reward = reward + self.hit_plane_reward if bullet.fcolor == 'red' else 0
                 if newhp <= 0: # won the game
                     self.winner = bullet.fcolor
@@ -494,7 +426,7 @@ class BattleEnvironment(gym.Env):
          # --------------- SHOOT ---------------
         elif action == 1:
             if len(self.bullets) < self.max_bullets:
-                self.bullets.append(Bullet(fplane_pos[0], fplane_pos[1], fplane_direction, self.bullet_speed, fcolor, self.team[ocolor]['planes'], self.team[ocolor]['base']))
+                self.bullets.append(Bullet(fplane_pos[0], fplane_pos[1], fplane_direction, self.bullet_speed, fcolor, self.team[ocolor]['planes'][0], self.team[ocolor]['base']))
             fplane.forward(self.speed, self.time_step)
         
         # --------------- TURN TO ENEMY PLANE ---------------
