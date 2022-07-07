@@ -9,9 +9,8 @@ import gym
 from gym import spaces
 import os
 import sys
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
-
 from stable_baselines3.common import env_checker
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 WHITE = (255, 255, 255)
 RED = (138, 24, 26)
@@ -173,11 +172,11 @@ class Bullet(pygame.sprite.Sprite):
         self.image.fill(self.color)
         self.rect = self.image.get_rect(center=(x, y))
         self.w, self.h = self.image.get_size()
-        self.direction = angle + (random.random() * 10 - 5)
+        self.direction = angle + (random.random() * 8 - 4)
         self.pos = (x, y)
         self.speed = speed
         self.dist_travelled = 0
-        self.max_dist = 500
+        self.max_dist = 600
 
     def update(self, screen_width, screen_height, time):
         oldpos = self.rect.center
@@ -228,6 +227,8 @@ class BattleEnvironment(gym.Env):
             'oplane_x': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
             'oplane_y': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
             'oplane_direction': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
+            'rel_angle_fplane': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
+            'rel_angle_fbase': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
             'obase_x': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
             'obase_y': spaces.Box(-1, 1, dtype=np.float32, shape=(1,)),
             'time': spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
@@ -239,11 +240,14 @@ class BattleEnvironment(gym.Env):
             obs_space[f'bullet_{i}_y'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
             obs_space[f'bullet_{i}_direction'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
             obs_space[f'bullet_{i}_dist_to_plane'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
+            obs_space[f'bullet_{i}_fplane_angle'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
+            obs_space[f'bullet_{i}_fbase_angle'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
+            
 
         mins = np.array([x.low[0] for x in obs_space.values()])
         maxs = np.array([x.high[0] for x in obs_space.values()])
 
-        self.observation_space = spaces.Box(mins, maxs, shape=(13+self.max_bullets*5,), dtype=np.float32)
+        self.observation_space = spaces.Box(mins, maxs, dtype=np.float32)
         
         # ---------- Initialize values ----------
         self.team = {}
@@ -259,12 +263,12 @@ class BattleEnvironment(gym.Env):
         self.team['blue']['wins'] = 0
         self.ties = 0
         self.bullets = []
-        self.speed = 150 # mph
-        self.bullet_speed = 300 # mph
+        self.speed = 250 # mph
+        self.bullet_speed = 400 # mph
         self.total_time = 0 # in hours
         self.time_step = 0.1 # hours per time step
         self.show = show # show the pygame animation
-        self.step_turn = 20 # degrees to turn per step
+        self.step_turn = 25 # degrees to turn per step
         self.hit_base_reward = hit_base_reward
         self.hit_plane_reward = hit_plane_reward
         self.miss_punishment = miss_punishment
@@ -289,6 +293,8 @@ class BattleEnvironment(gym.Env):
 
         rel_angle_oplane = rel_angle(fplane_pos, fplane_direction, oplane_pos)
         rel_angle_obase = rel_angle(fplane_pos, fplane_direction, obase_pos)
+        rel_angle_fplane = rel_angle(oplane_pos, oplane_direction, fplane_pos)
+        rel_angle_fbase = rel_angle(oplane_pos, oplane_direction, fbase_pos)
 
         dct = {
             'fplane_x': (fplane_pos[0] / self.width) * 2 - 1,
@@ -301,6 +307,8 @@ class BattleEnvironment(gym.Env):
             'oplane_x': (oplane_pos[0] / self.width) * 2 - 1,
             'oplane_y': (oplane_pos[1] / self.width) * 2 - 1,
             'oplane_direction': (oplane_direction / 360) * 2 - 1,
+            'rel_angle_fplane': rel_angle_fplane / 360,
+            'rel_angle_fbase': rel_angle_fbase / 360,
             'obase_x': (obase_pos[0] / self.width) * 2 - 1,
             'obase_y': (obase_pos[1] / self.width) * 2 - 1,
             'time': self.total_time / self.max_time
@@ -310,17 +318,21 @@ class BattleEnvironment(gym.Env):
             if i < len(self.bullets):
                 bullet = self.bullets[i]
                 dct[f'bullet_{i}_shot'] = 1
-                dct[f'bullet_{i}_x'] = bullet.get_pos()[0]
-                dct[f'bullet_{i}_y'] = bullet.get_pos()[1]
-                dct[f'bullet_{i}_direction'] = bullet.get_direction()
-                dct[f'bullet_{i}_dist_to_plane'] = dist(bullet.get_pos(), fplane.get_pos())
+                dct[f'bullet_{i}_x'] = (bullet.get_pos()[0] / self.width) * 2 - 1
+                dct[f'bullet_{i}_y'] = (bullet.get_pos()[1] / self.height) * 2 - 1
+                dct[f'bullet_{i}_direction'] = (bullet.get_direction() / 360) * 2 - 1
+                dct[f'bullet_{i}_dist_to_plane'] = (dist(bullet.get_pos(), fplane.get_pos()) / math.sqrt(math.pow(self.width, 2) + math.pow(self.height, 2))) * 2 - 1
+                dct[f'bullet_{i}_fplane_angle'] = rel_angle(bullet.get_pos(), bullet.get_direction(), fplane_pos) / 360
+                dct[f'bullet_{i}_fbase_angle'] = rel_angle(bullet.get_pos(), bullet.get_direction(), fbase_pos) / 360
             else:
                 dct[f'bullet_{i}_shot'] = -1
                 dct[f'bullet_{i}_x'] = -1
                 dct[f'bullet_{i}_y'] = -1
                 dct[f'bullet_{i}_direction'] = -1
                 dct[f'bullet_{i}_dist_to_plane'] = -1
-
+                dct[f'bullet_{i}_fplane_angle'] = -1
+                dct[f'bullet_{i}_fbase_angle'] = -1
+                
         return np.array([x for x in dct.values()], dtype=np.float32)
 
     def reset(self): # return observation
@@ -421,7 +433,8 @@ class BattleEnvironment(gym.Env):
 
          # --------------- SHOOT ---------------
         elif action == 1:
-            self.bullets.append(Bullet(fplane_pos[0], fplane_pos[1], fplane_direction, self.bullet_speed, fcolor, self.team[ocolor]['planes'], self.team[ocolor]['base']))
+            if len(self.bullets) < self.max_bullets:
+                self.bullets.append(Bullet(fplane_pos[0], fplane_pos[1], fplane_direction, self.bullet_speed, fcolor, self.team[ocolor]['planes'], self.team[ocolor]['base']))
             fplane.forward(self.speed, self.time_step)
         
         # --------------- TURN TO ENEMY PLANE ---------------
@@ -532,4 +545,4 @@ class BattleEnvironment(gym.Env):
             pygame.display.update()
             self.clock.tick(self.fps)
 
-# env_checker.check_env(BattleEnvironment())
+env_checker.check_env(BattleEnvironment())
