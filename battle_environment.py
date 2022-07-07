@@ -66,11 +66,11 @@ class Plane:
         self.w, self.h = self.image.get_size()
         self.direction = 0
         self.rect = self.image.get_rect()
-        self.hp = 6
+        self.hp = 3
         self.reset()
 
     def reset(self):
-        self.hp = 6
+        self.hp = 3
         if self.team == 'red':
             x = (DISP_WIDTH - self.w)/4 * random.random() + self.w/2
             y = (DISP_HEIGHT - self.h)/2 * random.random() + self.h/2
