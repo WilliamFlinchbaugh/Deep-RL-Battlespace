@@ -10,7 +10,7 @@ for i in range(100):
         os.makedirs(FOLDER)
         os.makedirs(LOG_DIR)
         break
-# FOLDER = 'models/PPO_3'
+# FOLDER = 'models/PPO_1'
 
 # ---------- CALLBACK ----------
 class TrainAndLoggingCallback(BaseCallback):
@@ -31,17 +31,17 @@ class TrainAndLoggingCallback(BaseCallback):
 
 CHECKPOINT_DIR = f'{FOLDER}/train'
 save_freq = 10000
-timesteps = 300000
+timesteps = 500000
 saved_timesteps = timesteps // save_freq * save_freq
 
 # ---------- TRAINING ----------
 callback = TrainAndLoggingCallback(check_freq=save_freq, save_path=CHECKPOINT_DIR)
-env = BattleEnvironment(show=False, hit_base_reward=100, hit_plane_reward=20, miss_punishment=-2, too_long_punishment=0, closer_to_base_reward=0, 
-    closer_to_plane_reward=0, lose_punishment=-30)
+env = BattleEnvironment(show=False, hit_base_reward=50, hit_plane_reward=20, miss_punishment=0, too_long_punishment=0, closer_to_base_reward=0, 
+    closer_to_plane_reward=0, lose_punishment=-50)
 config = [env.hit_base_reward, env.hit_plane_reward, env.miss_punishment, env.too_long_punishment, env.closer_to_base_reward, env.closer_to_plane_reward, env.lose_punishment]
-# model = PPO('MlpPolicy', env, tensorboard_log=LOG_DIR, verbose=1)
-# model.learn(total_timesteps=timesteps, callback=callback)
-# del model
+model = PPO('MlpPolicy', env, tensorboard_log=LOG_DIR, verbose=1)
+model.learn(total_timesteps=timesteps, callback=callback)
+del model
 
 # ---------- EVALUATION WITHOUT VISUALS ----------
 model = PPO.load(f'{CHECKPOINT_DIR}/{saved_timesteps}')
