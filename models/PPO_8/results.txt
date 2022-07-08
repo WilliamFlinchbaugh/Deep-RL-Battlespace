@@ -1,0 +1,14 @@
+---CONSTANTS---
+hit base:100
+hit plane:30
+miss:0
+too long:0
+closer to base:0
+closer to plane:0
+lose:-10
+
+---EVALUATION---
+Wins by red: 1086
+Wins by blue: 172
+Tied games: 0
+

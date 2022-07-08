@@ -10,7 +10,20 @@ for i in range(100):
         os.makedirs(FOLDER)
         os.makedirs(LOG_DIR)
         break
-# FOLDER = 'models/PPO_1'
+# FOLDER = 'models/PPO_13'
+
+# ---------- CONFIG ----------
+cf = {
+    'show_viz': False,
+    'hit_base_reward': 100,
+    'hit_plane_reward': 30,
+    'miss_punishment': 0,
+    'too_long_punishment': 0,
+    'closer_to_base_reward': 0,
+    'closer_to_plane_reward': 0,
+    'lose_punishment': 0,
+    'fps': 20
+}
 
 # ---------- CALLBACK ----------
 class TrainAndLoggingCallback(BaseCallback):
@@ -31,48 +44,44 @@ class TrainAndLoggingCallback(BaseCallback):
 
 CHECKPOINT_DIR = f'{FOLDER}/train'
 save_freq = 10000
-timesteps = 500000
+timesteps = 1000000
 saved_timesteps = timesteps // save_freq * save_freq
 
 # ---------- TRAINING ----------
 callback = TrainAndLoggingCallback(check_freq=save_freq, save_path=CHECKPOINT_DIR)
-env = BattleEnvironment(show=False, hit_base_reward=50, hit_plane_reward=20, miss_punishment=0, too_long_punishment=0, closer_to_base_reward=0, 
-    closer_to_plane_reward=0, lose_punishment=-50)
-config = [env.hit_base_reward, env.hit_plane_reward, env.miss_punishment, env.too_long_punishment, env.closer_to_base_reward, env.closer_to_plane_reward, env.lose_punishment]
+env = BattleEnvironment(show=cf['show_viz'], hit_base_reward=cf['hit_base_reward'], hit_plane_reward=cf['hit_plane_reward'], miss_punishment=cf['miss_punishment'], 
+    too_long_punishment=cf['too_long_punishment'], closer_to_base_reward=cf['closer_to_base_reward'], closer_to_plane_reward=cf['closer_to_plane_reward'], lose_punishment=cf['lose_punishment'])
 model = PPO('MlpPolicy', env, tensorboard_log=LOG_DIR, verbose=1)
 model.learn(total_timesteps=timesteps, callback=callback)
 del model
 
 # ---------- EVALUATION WITHOUT VISUALS ----------
 model = PPO.load(f'{CHECKPOINT_DIR}/{saved_timesteps}')
-env = BattleEnvironment(show=False, hit_base_reward=config[0], hit_plane_reward=config[1], miss_punishment=config[2], too_long_punishment=config[3], closer_to_base_reward=config[4], 
-    closer_to_plane_reward=config[5], lose_punishment=config[6])
+env = BattleEnvironment(show=cf['show_viz'], hit_base_reward=cf['hit_base_reward'], hit_plane_reward=cf['hit_plane_reward'], miss_punishment=cf['miss_punishment'], 
+    too_long_punishment=cf['too_long_punishment'], closer_to_base_reward=cf['closer_to_base_reward'], closer_to_plane_reward=cf['closer_to_plane_reward'], lose_punishment=cf['lose_punishment'])
 episodes = 1000
-avg = 0
 for episode in range(episodes): # Evaluates the model n times
     state = env.reset()
     score = 0
     while not env.done:
         env.render()
         action, _states = model.predict(state)
-        # action = env.action_space.sample()
         n_state, reward, done, info = env.step(action)
         score += reward
-        avg += reward
-
-    if episode % 50 == 0:
-        print('# Episodes:{} Avg Score:{}'.format(episode, avg/50))
-        avg = 0
+    
+    if (episode+1) % 10 == 0:
+        print(f"episode {episode+1}")
 
 print(env.wins())
 with open(f'{FOLDER}/results.txt', 'w') as f:
-    print(f"---CONSTANTS---\nhit base:{config[0]}\nhit plane:{config[1]}\nmiss:{config[2]}\ntoo long:{config[3]}\ncloser to base:{config[4]}\ncloser to plane:{config[5]}\nlose:{config[6]}\n", file=f)
+    print(f"---CONSTANTS---\nhit base:{cf['hit_base_reward']}\nhit plane:{cf['hit_plane_reward']}\nmiss:{cf['miss_punishment']}\ntoo long:{cf['too_long_punishment']}\ncloser to base:{cf['closer_to_base_reward']}\ncloser to plane:{cf['closer_to_plane_reward']}\nlose:{cf['lose_punishment']}\n", file=f)
     print(f"---EVALUATION---\n{env.wins()}\n", file=f)
 
 # ---------- EVALUATION WITH VISUALS ----------
 model = PPO.load(f'{CHECKPOINT_DIR}/{saved_timesteps}')
-env = BattleEnvironment(show=True, hit_base_reward=config[0], hit_plane_reward=config[1], miss_punishment=config[2], too_long_punishment=config[3], closer_to_base_reward=config[4], 
-    closer_to_plane_reward=config[5], lose_punishment=config[6], fps=30)
+cf['show_viz'] = True
+env = BattleEnvironment(show=cf['show_viz'], hit_base_reward=cf['hit_base_reward'], hit_plane_reward=cf['hit_plane_reward'], miss_punishment=cf['miss_punishment'], 
+    too_long_punishment=cf['too_long_punishment'], closer_to_base_reward=cf['closer_to_base_reward'], closer_to_plane_reward=cf['closer_to_plane_reward'], lose_punishment=cf['lose_punishment'], fps=cf['fps'])
 episodes = 100
 for episode in range(episodes): # Evaluates the model n times
     state = env.reset()
@@ -80,13 +89,14 @@ for episode in range(episodes): # Evaluates the model n times
     while not env.done:
         env.render()
         action, _states = model.predict(state)
-        # action = env.action_space.sample()
         n_state, reward, done, info = env.step(action)
         score += reward
-    if episode % 10 == 0:
-        print('# Episodes:{} Avg Score:{}'.format(episode+1, avg/10))
-        avg = 0
+    
+    if (episode+1) % 10 == 0:
+        print(f"episode {episode+1}")
+
 print(env.wins())
+
 with open(f'{FOLDER}/results.txt', 'w') as f:
     print(f"---VIZ EVALUATION---\n{env.wins()}\n", file=f)
 

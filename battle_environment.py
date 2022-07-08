@@ -122,12 +122,13 @@ class Plane:
     def draw(self, surface):
         image, rect = blitRotate(self.image, self.rect.center, (self.w/2, self.h/2), self.direction)
         surface.blit(image, rect)
-        rect = pygame.Rect(0, 0, self.hp * 5, 10)
-        border_rect = pygame.Rect(0, 0, self.hp * 5 + 2, 12)
-        rect.center = (self.rect.centerx, self.rect.centery - 20)
-        border_rect.center = rect.center
-        pygame.draw.rect(surface, BLACK, border_rect, border_radius = 3)
-        pygame.draw.rect(surface, self.color, rect, border_radius = 3)
+        if self.hp > 0:
+            rect = pygame.Rect(0, 0, self.hp * 10, 10)
+            border_rect = pygame.Rect(0, 0, self.hp * 10 + 2, 12)
+            rect.center = (self.rect.centerx, self.rect.centery - 35)
+            border_rect.center = rect.center
+            pygame.draw.rect(surface, BLACK, border_rect, border_radius = 3)
+            pygame.draw.rect(surface, self.color, rect, border_radius = 3)
 
     def update(self):
         # Keep player on the screen
@@ -176,11 +177,12 @@ class Base:
     def draw(self, surface):
         surface.blit(self.image, self.rect)
         rect = pygame.Rect(0, 0, self.hp * 10, 10)
-        border_rect = pygame.Rect(0, 0, self.hp * 10 + 2, 12)
-        rect.center = (self.rect.centerx, self.rect.centery - 40)
-        border_rect.center = rect.center
-        pygame.draw.rect(surface, BLACK, border_rect, border_radius = 3)
-        pygame.draw.rect(surface, self.color, rect, border_radius = 3)
+        if self.hp > 0:
+            border_rect = pygame.Rect(0, 0, self.hp * 10 + 2, 12)
+            rect.center = (self.rect.centerx, self.rect.centery - 40)
+            border_rect.center = rect.center
+            pygame.draw.rect(surface, BLACK, border_rect, border_radius = 3)
+            pygame.draw.rect(surface, self.color, rect, border_radius = 3)
             
     def get_pos(self):
         return self.rect.center
@@ -345,7 +347,7 @@ class BattleEnvironment(gym.Env):
             return self._get_observation(), 0, self.done, {}
 
         # Red turn
-        reward += self._process_action(action, 'red', 'blue')
+        self._process_action(action, 'red', 'blue')
         
         # Blue turn
         self._process_action(random.randint(0, 3), 'blue', 'red')        
@@ -413,9 +415,6 @@ class BattleEnvironment(gym.Env):
         obase_pos = obase.get_pos()
         oplane_pos = oplane.get_pos()
 
-        dist_oplane = dist(oplane_pos, fplane_pos)
-        dist_obase = dist(obase_pos, fplane_pos)
-
         rel_angle_oplane = rel_angle(fplane_pos, fplane_direction, oplane_pos)
         rel_angle_obase = rel_angle(fplane_pos, fplane_direction, obase_pos)
 
@@ -458,22 +457,6 @@ class BattleEnvironment(gym.Env):
         # elif action == 3:
         #     fplane.rotate(-self.step_turn)
         #     fplane.forward(self.speed, self.time_step)
-
-        # ---------------- GIVE REWARDS IF CLOSER (DIST OR ANGLE) ----------------
-        new_fplane_pos = fplane.get_pos()
-        new_oplane_pos = oplane.get_pos()
-        new_obase_pos = obase.get_pos()
-
-        new_dist_oplane = dist(new_oplane_pos, new_fplane_pos)
-        new_dist_obase = dist(new_obase_pos, new_fplane_pos)
-
-        if new_dist_oplane < dist_oplane and new_dist_oplane < 300: # If got closer to enemy plane and within 300 miles
-            reward += self.closer_to_plane_reward
-
-        if new_dist_obase < dist_obase and new_dist_obase < 300: # If got closer to enemy base
-            reward += self.closer_to_base_reward
-
-        return reward
     
     def winner_screen(self):
         if self.show:
@@ -547,4 +530,4 @@ class BattleEnvironment(gym.Env):
             pygame.display.update()
             self.clock.tick(self.fps)
 
-env_checker.check_env(BattleEnvironment())
+# env_checker.check_env(BattleEnvironment())
