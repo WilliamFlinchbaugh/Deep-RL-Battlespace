@@ -1,5 +1,0 @@
----VIZ EVALUATION---
-Wins by red: 15
-Wins by blue: 54
-Tied games: 31
-

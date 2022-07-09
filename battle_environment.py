@@ -267,6 +267,7 @@ class BattleEnvironment(gym.Env):
         self.team['blue']['planes'].append(Plane('blue'))
         self.team['red']['wins'] = 0
         self.team['blue']['wins'] = 0
+        self.total_games = 0
         self.ties = 0
         self.bullets = []
         self.speed = 200 # mph
@@ -340,6 +341,7 @@ class BattleEnvironment(gym.Env):
         self.total_time += self.time_step
         if self.total_time >= self.max_time:
             self.done = True
+            self.total_games += 1
             self.ties += 1
             if self.show:
                 self.render()
@@ -367,11 +369,14 @@ class BattleEnvironment(gym.Env):
                     self.team[bullet.fcolor]['wins'] += 1
                     if not self.winner == 'red':
                         reward += self.lose_punishment
+                    self.total_games += 1
                     self.done = True
+
                     if self.show:
                         self.render()
                         print(f"{self.winner} wins")
-                        return self._get_observation(), reward, self.done, {}
+                        
+                    return self._get_observation(), reward, self.done, {}
                 else:
                     self.bullets.remove(bullet)
             
@@ -383,11 +388,14 @@ class BattleEnvironment(gym.Env):
                     self.team[bullet.fcolor]['wins'] += 1
                     if not self.winner == 'red':
                         reward += self.lose_punishment
+                    self.total_games += 1
                     self.done = True
+
                     if self.show:
                         self.render()
                         print(f"{self.winner} wins")
-                        return self._get_observation(), reward, self.done, {}
+
+                    return self._get_observation(), reward, self.done, {}
                 else:
                     self.bullets.remove(bullet)
             
