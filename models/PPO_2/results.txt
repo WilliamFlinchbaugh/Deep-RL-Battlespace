@@ -1,0 +1,14 @@
+Timesteps: 1000000
+{'closer_to_base_reward': 0,
+ 'closer_to_plane_reward': 0,
+ 'hit_base_reward': 2,
+ 'hit_plane_reward': 1,
+ 'lose_punishment': -3,
+ 'miss_punishment': 0,
+ 'too_long_punishment': 0}
+---EVALUATION---
+Wins by red: 896
+Wins by blue: 104
+Tied games: 0
+Win rate: 0.896
+

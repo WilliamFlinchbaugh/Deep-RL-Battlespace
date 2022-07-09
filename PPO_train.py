@@ -27,7 +27,7 @@ class TrainAndLoggingCallback(BaseCallback):
         self.env = env
         self.total_wins = 0
         self.fig, self.ax = plt.subplots()
-        self.ax.set(xlabel='timesteps', ylabel='percentage of agent wins')
+        self.ax.set(xlabel='# of games played', ylabel='Percentage of agent wins')
         self.ax.grid()
         self.x = []
         self.y = []
@@ -46,7 +46,7 @@ class TrainAndLoggingCallback(BaseCallback):
             self.total_wins = self.env.team['red']['wins']
             self.total_games = self.env.total_games
             print(f"\n\n\n\n--------------------\ntimesteps:{self.n_calls}\nwin percentage:{round(self.num_wins/self.games * 100, 2)}\n--------------------\n\n\n\n")
-            self.x.append(self.n_calls)
+            self.x.append(self.env.total_games)
             self.y.append(self.num_wins/self.games * 100)
         return True
 
@@ -61,7 +61,7 @@ cf = {
     'too_long_punishment': 0,
     'closer_to_base_reward': 0,
     'closer_to_plane_reward': 0,
-    'lose_punishment': -2
+    'lose_punishment': -3
 }
 
 timesteps = 1000000
