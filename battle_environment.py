@@ -438,33 +438,31 @@ class BattleEnvironment(gym.Env):
         
         # --------------- TURN TO ENEMY PLANE ---------------
         elif action == 2:
-            if math.fabs(rel_angle_oplane) < self.step_turn:
-                fplane.rotate(-rel_angle_oplane)
-            elif rel_angle_oplane < 0:
+            if fcolor == 'red':
                 fplane.rotate(self.step_turn)
+                fplane.forward(self.speed, self.time_step)
             else:
-                fplane.rotate(-self.step_turn)
-            fplane.forward(self.speed, self.time_step)
+                if math.fabs(rel_angle_oplane) < self.step_turn:
+                    fplane.rotate(-rel_angle_oplane)
+                elif rel_angle_oplane < 0:
+                    fplane.rotate(self.step_turn)
+                else:
+                    fplane.rotate(-self.step_turn)
+                fplane.forward(self.speed, self.time_step)
 
         # ---------------- TURN TO ENEMY BASE ----------------
         elif action == 3:
-            if math.fabs(rel_angle_obase) < self.step_turn:
-                fplane.rotate(-rel_angle_obase)
-            elif rel_angle_obase < 0:
-                fplane.rotate(self.step_turn)
-            else:
+            if fcolor == 'red':
                 fplane.rotate(-self.step_turn)
-            fplane.forward(self.speed, self.time_step)
-
-        # # ---------- TURN RIGHT ----------
-        # elif action == 2:
-        #     fplane.rotate(self.step_turn)
-        #     fplane.forward(self.speed, self.time_step)
-
-        # # ---------- TURN LEFT ----------
-        # elif action == 3:
-        #     fplane.rotate(-self.step_turn)
-        #     fplane.forward(self.speed, self.time_step)
+                fplane.forward(self.speed, self.time_step)
+            else:
+                if math.fabs(rel_angle_obase) < self.step_turn:
+                    fplane.rotate(-rel_angle_obase)
+                elif rel_angle_obase < 0:
+                    fplane.rotate(self.step_turn)
+                else:
+                    fplane.rotate(-self.step_turn)
+                fplane.forward(self.speed, self.time_step)
     
     def winner_screen(self):
         if self.show:
@@ -480,7 +478,7 @@ class BattleEnvironment(gym.Env):
             self.display.blit(text, textRect)
 
     def wins(self):
-        return "Wins by red: {}\nWins by blue: {}\nTied games: {}".format(self.team['red']['wins'], self.team['blue']['wins'], self.ties)
+        return "Wins by red: {}\nWins by blue: {}\nTied games: {}\nWin rate: {}".format(self.team['red']['wins'], self.team['blue']['wins'], self.ties, self.team['red']['wins']/self.total_games)
 
     def render(self, mode="human"):
         if self.show: # Just to ensure it won't render if self.show == False

@@ -5,7 +5,7 @@ import os
 import pprint
 import matplotlib.pyplot as plt
 
-for i in range(100):
+for i in range(1, 100):
     if not os.path.exists(f'models/PPO_{i}'):
         FOLDER =  f'models/PPO_{i}'
         LOG_DIR = f'{FOLDER}/logs'
@@ -28,6 +28,8 @@ class TrainAndLoggingCallback(BaseCallback):
         self.fig, self.ax = plt.subplots()
         self.ax.set(xlabel='timesteps', ylabel='percentage of agent wins')
         self.ax.grid()
+        self.x = []
+        self.y = []
 
     def _init_callback(self):
         if self.save_path is not None:
@@ -42,15 +44,14 @@ class TrainAndLoggingCallback(BaseCallback):
             self.games = self.env.total_games - self.total_games
             self.total_wins = self.env.team['red']['wins']
             self.total_games = self.env.total_games
-            print(f"\n\n\n\n--------------------\ntimesteps:{self.n_calls}\nwin percentage:{self.num_wins/self.games * 100}\n--------------------\n\n\n\n")
-            x = self.n_calls
-            y = self.num_wins/self.games * 100
-            self.ax.plot(x, y)
+            print(f"\n\n\n\n--------------------\ntimesteps:{self.n_calls}\nwin percentage:{round(self.num_wins/self.games * 100, 2)}\n--------------------\n\n\n\n")
+            self.x.append(self.n_calls)
+            self.y.append(self.num_wins/self.games * 100)
         return True
 
 CHECKPOINT_DIR_R1 = f'{FOLDER}/train_r1'
 CHECKPOINT_DIR_R2 = f'{FOLDER}/train_r2'
-save_freq = 300000
+save_freq = 10000
 
 
 # ---------- CONFIG 1st round ----------
@@ -66,7 +67,7 @@ cf = {
     'fps': 60
 }
 
-timesteps = 50000
+timesteps = 100000
 saved_timesteps = timesteps // save_freq * save_freq
 
 with open(f'{FOLDER}/results.txt', 'w') as f:
@@ -81,6 +82,7 @@ env = BattleEnvironment(show=cf['show_viz'], hit_base_reward=cf['hit_base_reward
 callback_r1 = TrainAndLoggingCallback(check_freq=save_freq, save_path=CHECKPOINT_DIR_R1, env=env)
 model = PPO('MlpPolicy', env, tensorboard_log=LOG_DIR, verbose=1)
 model.learn(total_timesteps=timesteps, callback=callback_r1)
+callback_r1.ax.plot(callback_r1.x, callback_r1.y)
 callback_r1.fig.savefig(f"{CHECKPOINT_DIR_R1}/percent_win_r1.png")
 plt.show()
 
@@ -98,7 +100,7 @@ cf = {
     'fps': 20
 }
 
-timesteps = 20000
+timesteps = 100000
 saved_timesteps = timesteps // save_freq * save_freq
 
 with open(f'{FOLDER}/results.txt', 'w') as f:
@@ -113,6 +115,7 @@ env = BattleEnvironment(show=cf['show_viz'], hit_base_reward=cf['hit_base_reward
 callback_r2 = TrainAndLoggingCallback(check_freq=save_freq, save_path=CHECKPOINT_DIR_R2, env=env)
 model.set_env(env)
 model.learn(total_timesteps=timesteps, callback=callback_r2)
+callback_r2.ax.plot(callback_r2.x, callback_r2.y)
 callback_r2.fig.savefig(f"{CHECKPOINT_DIR_R1}/percent_win_r2.png")
 plt.show()
 
