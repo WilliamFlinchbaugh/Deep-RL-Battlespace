@@ -232,15 +232,13 @@ class Bullet(pygame.sprite.Sprite):
 
 # ----------- BATTLE ENVIRONMENT -----------
 class BattleEnvironment(gym.Env):
-    def __init__(self, show=False, hit_base_reward=100, hit_plane_reward=100, miss_punishment=-5, too_long_punishment=0, closer_to_base_reward=0, 
-        closer_to_plane_reward=0, lose_punishment=-50, fps=60):
+    def __init__(self, show=False, hit_base_reward=2, hit_plane_reward=1, miss_punishment=0, too_long_punishment=0, lose_punishment=-2, fps=60):
         super(BattleEnvironment, self).__init__()
 
         self.width = DISP_WIDTH
         self.height = DISP_HEIGHT
         self.max_time = 10
-        self.action_space = spaces.Discrete(4) # Forward, Shoot, Turn right/Turn to plane, Turn left/Turn to base
-        self.max_bullets = 20
+        self.action_space = spaces.Discrete(4) # Forward, Shoot, Turn right, Turn left (+ Turn to base and turn to plane for random agent)
 
         # ---------- Observation Space ----------
         obs_space = {
@@ -280,14 +278,11 @@ class BattleEnvironment(gym.Env):
         self.hit_plane_reward = hit_plane_reward
         self.miss_punishment = miss_punishment
         self.too_long_punishment = too_long_punishment
-        self.closer_to_base_reward = closer_to_base_reward
-        self.closer_to_plane_reward = closer_to_plane_reward
         self.lose_punishment = lose_punishment
         self.fps = fps
     
     def _get_observation(self):
         fplane = self.team['red']['planes'][0]
-        fbase = self.team['red']['base']
         oplane = self.team['blue']['planes'][0]
         obase = self.team['red']['base']
 
@@ -352,7 +347,7 @@ class BattleEnvironment(gym.Env):
         self._process_action(action, 'red', 'blue')
         
         # Blue turn
-        self._process_action(random.randint(0, 3), 'blue', 'red')        
+        self._process_action(random.randint(0, 5), 'blue', 'red')        
 
         # Check if bullets hit and move them
         for bullet in self.bullets[:]:
@@ -409,8 +404,6 @@ class BattleEnvironment(gym.Env):
         return self._get_observation(), reward, self.done, {}
     
     def _process_action(self, action, fteam, oteam): # friendly and opponent teams
-        reward = 0
-
         fcolor = fteam
         ocolor = oteam
 
@@ -432,38 +425,39 @@ class BattleEnvironment(gym.Env):
 
          # --------------- SHOOT ---------------
         elif action == 1:
-            if len(self.bullets) < self.max_bullets:
-                self.bullets.append(Bullet(fplane_pos[0], fplane_pos[1], fplane_direction, self.bullet_speed, fcolor, self.team[ocolor]['planes'][0], self.team[ocolor]['base']))
+            self.bullets.append(Bullet(fplane_pos[0], fplane_pos[1], fplane_direction, self.bullet_speed, fcolor, self.team[ocolor]['planes'][0], self.team[ocolor]['base']))
             fplane.forward(self.speed, self.time_step)
         
-        # --------------- TURN TO ENEMY PLANE ---------------
+        # --------------- TURN LEFT ---------------
         elif action == 2:
-            if fcolor == 'red':
+            fplane.rotate(self.step_turn)
+            fplane.forward(self.speed, self.time_step)
+
+        # ---------------- TURN RIGHT ----------------
+        elif action == 3:
+            fplane.rotate(-self.step_turn)
+            fplane.forward(self.speed, self.time_step)
+    
+        # --------------- TURN TO ENEMY PLANE ---------------
+        elif action == 4:
+            if math.fabs(rel_angle_oplane) < self.step_turn:
+                fplane.rotate(-rel_angle_oplane)
+            elif rel_angle_oplane < 0:
                 fplane.rotate(self.step_turn)
-                fplane.forward(self.speed, self.time_step)
             else:
-                if math.fabs(rel_angle_oplane) < self.step_turn:
-                    fplane.rotate(-rel_angle_oplane)
-                elif rel_angle_oplane < 0:
-                    fplane.rotate(self.step_turn)
-                else:
-                    fplane.rotate(-self.step_turn)
-                fplane.forward(self.speed, self.time_step)
+                fplane.rotate(-self.step_turn)
+            fplane.forward(self.speed, self.time_step)
 
         # ---------------- TURN TO ENEMY BASE ----------------
-        elif action == 3:
-            if fcolor == 'red':
-                fplane.rotate(-self.step_turn)
-                fplane.forward(self.speed, self.time_step)
+        elif action == 5:
+            if math.fabs(rel_angle_obase) < self.step_turn:
+                fplane.rotate(-rel_angle_obase)
+            elif rel_angle_obase < 0:
+                fplane.rotate(self.step_turn)
             else:
-                if math.fabs(rel_angle_obase) < self.step_turn:
-                    fplane.rotate(-rel_angle_obase)
-                elif rel_angle_obase < 0:
-                    fplane.rotate(self.step_turn)
-                else:
-                    fplane.rotate(-self.step_turn)
-                fplane.forward(self.speed, self.time_step)
-    
+                fplane.rotate(-self.step_turn)
+            fplane.forward(self.speed, self.time_step)
+
     def winner_screen(self):
         if self.show:
             font = pygame.font.Font('freesansbold.ttf', 32)
