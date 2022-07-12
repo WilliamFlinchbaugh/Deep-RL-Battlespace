@@ -1,3 +1,4 @@
+import optuna
 from stable_baselines3 import DQN
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.evaluation import evaluate_policy
@@ -10,9 +11,51 @@ for i in range(1, 100):
     if not os.path.exists(f'models/DQN_{i}'):
         FOLDER =  f'models/DQN_{i}'
         LOG_DIR = f'{FOLDER}/logs'
+        OPT_DIR = f'{FOLDER}/opt/'
         os.makedirs(FOLDER)
         os.makedirs(LOG_DIR)
+        os.makedirs(OPT_DIR)
         break
+    
+# ---------- CONFIG ----------
+cf = {
+    'hit_base_reward': 2,
+    'hit_plane_reward': 1,
+    'miss_punishment': 0,
+    'too_long_punishment': 0,
+    'lose_punishment': -3
+}
+
+# ---------- HYPERPARAM TUNING ----------
+def optimize_dqn(trial): 
+    return {
+        'learning_rate':trial.suggest_loguniform('learning_rate', 1e-6, 1e-3),
+        'buffer_size':trial.suggest_int('buffer_size', 100000, 10000000),
+        'batch_size':trial.suggest_int('batch_size', 16, 64),
+        'tau':trial.suggest_uniform('tau', 0.1, 1.0),
+        'gamma':trial.suggest_uniform('gamma', 0.7, 0.9999),
+        'exploration_fraction':trial.suggest_uniform('exploration_fraction', 0.1, 0.3)
+    }
+
+def optimize_agent(trial):
+    try:
+        model_params = optimize_dqn(trial)
+        env = BattleEnvironment(show=False, hit_base_reward=cf['hit_base_reward'], hit_plane_reward=cf['hit_plane_reward'], miss_punishment=cf['miss_punishment'], 
+            too_long_punishment=cf['too_long_punishment'], lose_punishment=cf['lose_punishment'])
+        model = DQN('MlpPolicy', env, tensorboard_log=LOG_DIR, verbose=0, **model_params)
+        model.learn(total_timesteps=1000000)
+        mean_reward, _ = evaluate_policy(model, env, n_eval_episodes=100)
+        SAVE_PATH = os.path.join(OPT_DIR, 'trial_{}'.format(trial.number))
+        model.save(SAVE_PATH)
+        return mean_reward
+    except Exception as e:
+        return -1000
+
+study = optuna.create_study(direction='maximize')
+study.optimize(optimize_agent, n_trials=50)
+
+model_params = study.best_params
+best_trial = study.best_trial.number
 
 # ---------- CALLBACK ----------
 class TrainAndLoggingCallback(BaseCallback):
@@ -50,37 +93,23 @@ class TrainAndLoggingCallback(BaseCallback):
         return True
 
 CHECKPOINT_DIR = f'{FOLDER}/train'
-save_freq = 50000
+save_freq = 10000
 
-# ---------- CONFIG ----------
-cf = {
-    'hit_base_reward': 3,
-    'hit_plane_reward': 1,
-    'miss_punishment': 0,
-    'too_long_punishment': 0,
-    'lose_punishment': -3
-}
-
-timesteps = 30000000
+timesteps = 3000000
 saved_timesteps = timesteps // save_freq * save_freq
 file = open(f"{FOLDER}/results.txt", 'a')
 print("Timesteps:", saved_timesteps, file=file)
+print("Config:", file=file)
 pprint.pprint(cf, stream=file)
+print("Parameters:", file=file)
+pprint.pprint(model_params, stream=file)
 
-# Create the environment and model
+# ---------- LOAD AND TRAIN MODEL -----------
+callback = TrainAndLoggingCallback(check_freq=save_freq, save_path=CHECKPOINT_DIR)
 env = BattleEnvironment(show=False, hit_base_reward=cf['hit_base_reward'], hit_plane_reward=cf['hit_plane_reward'], miss_punishment=cf['miss_punishment'], 
     too_long_punishment=cf['too_long_punishment'], lose_punishment=cf['lose_punishment'])
-callback = TrainAndLoggingCallback(check_freq=save_freq, save_path=CHECKPOINT_DIR, env=env)
-model = DQN('MlpPolicy', env, tensorboard_log=LOG_DIR, verbose=1)
-
-# Eval before training (1000 games)
-eval_env = BattleEnvironment(show=False, hit_base_reward=cf['hit_base_reward'], hit_plane_reward=cf['hit_plane_reward'], miss_punishment=cf['miss_punishment'], 
-    too_long_punishment=cf['too_long_punishment'], lose_punishment=cf['lose_punishment'])
-mean_reward, std_reward = evaluate_policy(model, eval_env, n_eval_episodes=1000, deterministic=True)
-print(f"mean_reward={mean_reward:.2f} +/- {std_reward}")
-print(eval_env.wins())
-
-# Train the model and save graph
+model = DQN('MlpPolicy', env, tensorboard_log=LOG_DIR, verbose=1, **model_params)
+model.load(os.path.join(OPT_DIR, f'trial_{best_trial}.zip'))
 model.learn(total_timesteps=timesteps, callback=callback)
 model.save(f"{FOLDER}/final_model")
 del model
