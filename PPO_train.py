@@ -44,7 +44,7 @@ class TrainAndLoggingCallback(BaseCallback):
             self.games = self.env.total_games - self.total_games
             self.total_wins = self.env.team['red']['wins']
             self.total_games = self.env.total_games
-            print(f"\n\n\n\n--------------------\ntimesteps:{self.n_calls}\nwin percentage:{round(self.num_wins/self.games * 100, 2)}\n--------------------\n\n\n\n")
+            print(f"\n\n\n\n--------------------\ntotal games:{self.total_games}\ntimesteps:{self.n_calls}\nwin percentage:{round(self.num_wins/self.games * 100, 2)}\n--------------------\n\n\n\n")
             self.x.append(self.env.total_games)
             self.y.append(self.num_wins/self.games * 100)
         return True
@@ -54,14 +54,14 @@ save_freq = 10000
 
 # ---------- CONFIG ----------
 cf = {
-    'hit_base_reward': 2,
-    'hit_plane_reward': 1,
-    'miss_punishment': 0,
+    'hit_base_reward': 1000,
+    'hit_plane_reward': 30,
+    'miss_punishment': -1,
     'too_long_punishment': 0,
-    'lose_punishment': -3
+    'lose_punishment': 0
 }
 
-timesteps = 1000000
+timesteps = 3000000
 saved_timesteps = timesteps // save_freq * save_freq
 file = open(f"{FOLDER}/results.txt", 'a')
 print("Timesteps:", saved_timesteps, file=file)
@@ -73,10 +73,10 @@ env = BattleEnvironment(show=False, hit_base_reward=cf['hit_base_reward'], hit_p
 callback = TrainAndLoggingCallback(check_freq=save_freq, save_path=CHECKPOINT_DIR, env=env)
 model = PPO('MlpPolicy', env, tensorboard_log=LOG_DIR, verbose=1)
 
-# Eval before training (1000 games)
+# Eval before training (100 games)
 eval_env = BattleEnvironment(show=False, hit_base_reward=cf['hit_base_reward'], hit_plane_reward=cf['hit_plane_reward'], miss_punishment=cf['miss_punishment'], 
     too_long_punishment=cf['too_long_punishment'], lose_punishment=cf['lose_punishment'])
-mean_reward, std_reward = evaluate_policy(model, eval_env, n_eval_episodes=1000, deterministic=True)
+mean_reward, std_reward = evaluate_policy(model, eval_env, n_eval_episodes=100, deterministic=True)
 print(f"mean_reward={mean_reward:.2f} +/- {std_reward}")
 print(eval_env.wins())
 

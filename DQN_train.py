@@ -54,7 +54,7 @@ save_freq = 50000
 
 # ---------- CONFIG ----------
 cf = {
-    'hit_base_reward': 3,
+    'hit_base_reward': 10,
     'hit_plane_reward': 1,
     'miss_punishment': 0,
     'too_long_punishment': 0,

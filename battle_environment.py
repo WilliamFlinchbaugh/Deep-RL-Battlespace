@@ -10,6 +10,7 @@ from gym import spaces
 import os
 import sys
 from stable_baselines3.common import env_checker
+from stable_baselines3 import PPO
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 WHITE = (255, 255, 255)
@@ -280,11 +281,13 @@ class BattleEnvironment(gym.Env):
         self.too_long_punishment = too_long_punishment
         self.lose_punishment = lose_punishment
         self.fps = fps
+        self.blue_ai = PPO.load("models/PPO_1/final_model", env=self)
     
-    def _get_observation(self):
-        fplane = self.team['red']['planes'][0]
-        oplane = self.team['blue']['planes'][0]
-        obase = self.team['red']['base']
+    def _get_observation(self, fteam):
+        fplane = self.team[fteam]['planes'][0]
+        oteam = 'blue' if fteam == 'red' else 'red'
+        oplane = self.team[oteam]['planes'][0]
+        obase = self.team[oteam]['base']
 
         fplane_pos = fplane.get_pos()
         fplane_direction = fplane.get_direction()
@@ -327,7 +330,7 @@ class BattleEnvironment(gym.Env):
             self.display = pygame.display.set_mode((DISP_WIDTH, DISP_HEIGHT))
             pygame.display.set_caption("Battlespace Simulator")
             pygame.time.wait(1000)
-        return self._get_observation()
+        return self._get_observation('red')
 
     def step(self, action): # return observation, reward, done, info
         reward = 0
@@ -341,13 +344,13 @@ class BattleEnvironment(gym.Env):
             if self.show:
                 self.render()
                 print("Draw")
-            return self._get_observation(), 0, self.done, {}
+            return self._get_observation('red'), 0, self.done, {}
 
         # Red turn
         self._process_action(action, 'red', 'blue')
         
         # Blue turn
-        self._process_action(random.randint(0, 5), 'blue', 'red')        
+        self._process_action(self.blue_ai.predict(self._get_observation('blue'))[0], 'blue', 'red')        
 
         # Check if bullets hit and move them
         for bullet in self.bullets[:]:
@@ -371,7 +374,7 @@ class BattleEnvironment(gym.Env):
                         self.render()
                         print(f"{self.winner} wins")
                         
-                    return self._get_observation(), reward, self.done, {}
+                    return self._get_observation('red'), reward, self.done, {}
                 else:
                     self.bullets.remove(bullet)
             
@@ -390,7 +393,7 @@ class BattleEnvironment(gym.Env):
                         self.render()
                         print(f"{self.winner} wins")
 
-                    return self._get_observation(), reward, self.done, {}
+                    return self._get_observation('red'), reward, self.done, {}
                 else:
                     self.bullets.remove(bullet)
             
@@ -401,7 +404,7 @@ class BattleEnvironment(gym.Env):
         # Continue game
         if self.show:
             self.render()
-        return self._get_observation(), reward, self.done, {}
+        return self._get_observation('red'), reward, self.done, {}
     
     def _process_action(self, action, fteam, oteam): # friendly and opponent teams
         fcolor = fteam
