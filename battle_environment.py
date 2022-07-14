@@ -195,10 +195,10 @@ class Base:
         self.ymin = self.h / 2
         self.ymax = DISP_HEIGHT - (self.h / 2)
         self.rect = self.image.get_rect()
-        self.reset()
         self.max_hp = hp
         self.hp = self.max_hp
         self.alive = True
+        self.reset()
         
     def reset(self):
         self.alive = True
@@ -267,7 +267,7 @@ class Bullet(pygame.sprite.Sprite):
             return self.oteam['base']
 
         # Hit if collides with any enemy plane
-        for plane in self.oteam['planes']:
+        for plane in self.oteam['planes'].values():
             if self.rect.colliderect(plane.rect):
                 return plane
         return 'none'
@@ -284,6 +284,12 @@ class Bullet(pygame.sprite.Sprite):
 
 # ----------- BATTLE ENVIRONMENT -----------
 class raw_env(AECEnv):
+    metadata = {
+        "render_modes": ["human"],
+        "name": "battle_env_v1",
+        "is_parallelizable": False,
+        "render_fps": 30,
+    }
     def __init__(self, n_agents=1, show=False, hit_base_reward=10, hit_plane_reward=2, miss_punishment=0, lose_punishment=-3, die_punishment=-3, fps=20):
         super(raw_env, self).__init__()
         self.n_agents = n_agents
@@ -329,8 +335,8 @@ class raw_env(AECEnv):
         obs_space = spaces.Box(mins, maxs, dtype=np.float32)
 
          # Forward, Shoot, Turn right, Turn left
-        self._observation_spaces = {agent: obs_space for agent in self.possible_agents}
-        self._action_spaces = {agent: spaces.Discrete(4) for agent in self.possible_agents}
+        self.observation_spaces = {agent: obs_space for agent in self.possible_agents}
+        self.action_spaces = {agent: spaces.Discrete(4) for agent in self.possible_agents}
         
         # ---------- Initialize values ----------
         self.width = DISP_WIDTH
@@ -380,15 +386,15 @@ class raw_env(AECEnv):
 
         return np.array([x for x in dct.values()], dtype=np.float32)
 
-    def reset(self):
+    def reset(self, seed=None, return_info=False, options=None):
         self.winner = 'none'
 
         self.team['red']['base'].reset()
         self.team['blue']['base'].reset()
 
-        for plane in self.team['red']['planes']:
+        for plane in self.team['red']['planes'].values():
             plane.reset()
-        for plane in self.team['blue']['planes']:
+        for plane in self.team['blue']['planes'].values():
             plane.reset()
 
         self.total_time = 0
@@ -406,10 +412,10 @@ class raw_env(AECEnv):
         self._agent_selector.reinit(self.agents)
         self.agent_selection = self._agent_selector.next()
 
-        self.rewards = {0 for _ in self.agents}
-        self._cumulative_rewards = {0 for _ in self.agents}
-        self.dones = {False for _ in self.agents}
-        self.infos = {{} for _ in self.agents}
+        self.rewards = dict(zip(self.agents, [0 for _ in self.agents]))
+        self._cumulative_rewards = dict(zip(self.agents, [0 for _ in self.agents]))
+        self.dones = dict(zip(self.agents, [False for _ in self.agents]))
+        self.infos = dict(zip(self.agents, [{} for _ in self.agents]))
 
     def step(self, action):
         # Checks if agent is already done
@@ -418,6 +424,8 @@ class raw_env(AECEnv):
 
         self.rewards = {agent: 0 for agent in self.agents}
         agent_id = self.agent_selection
+
+        self._cumulative_rewards[agent_id] = 0
 
         # Take action
         self.process_action(action, agent_id)
@@ -451,7 +459,7 @@ class raw_env(AECEnv):
                                 self.rewards[key] += self.lose_punishment
 
                         self.total_games += 1
-                        self.dones = {True for _ in self.agents}
+                        self.dones = {agent: True for agent in self.agents}
 
                         if self.show:
                             self.render()
@@ -475,7 +483,7 @@ class raw_env(AECEnv):
             # Increase time and check for a tie
             self.total_time += self.time_step
             if self.total_time >= self.max_time:
-                self.dones = {True for _ in self.agents}
+                self.dones = {agent: True for agent in self.agents}
                 self.winner = 'tie'
                 self.total_games += 1
                 self.ties += 1
@@ -483,10 +491,9 @@ class raw_env(AECEnv):
             # Render the environment
             if self.show:
                 self.render()
-
-        # Select next agent if game not over
-        if self.winner == 'none':
-            self.agent_selection = self._agent_selector.next()
+        
+        # Select next agent
+        self.agent_selection = self._agent_selector.next()
 
         # Adds rewards
         self._accumulate_rewards()
