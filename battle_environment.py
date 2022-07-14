@@ -73,7 +73,7 @@ def calc_new_xy(old_xy, speed, time, angle):
 
 # ---------- PLANE CLASS ----------
 class Plane:
-    def __init__(self, team):
+    def __init__(self, team, hp):
         self.team = team
         self.color = RED if self.team == 'red' else BLUE
         self.image = pygame.image.load(f"assets/{team}_plane.png")
@@ -84,11 +84,14 @@ class Plane:
         self.ymax = DISP_HEIGHT - (self.h / 2)
         self.direction = 0
         self.rect = self.image.get_rect()
-        self.hp = 3
+        self.max_hp = hp
+        self.hp = self.max_hp
+        self.alive = True
         self.reset()
 
     def reset(self):
-        self.hp = 3
+        self.hp = self.max_hp
+        self.alive = True
         if self.team == 'red':
             x = self.xmax/3 * random.random()
             y = self.ymax * random.random()
@@ -117,6 +120,7 @@ class Plane:
             self.direction -= 360
         while self.direction < 0:
             self.direction += 360
+
         # Keep player on the screen
         if self.rect.left < 0:
             self.rect.left = 0
@@ -133,6 +137,7 @@ class Plane:
     def forward(self, speed, time):
         oldpos = self.rect.center
         self.rect.center = calc_new_xy(oldpos, speed, time, self.direction)
+
         # Keep player on the screen
         if self.rect.left < 0:
             self.rect.left = 0
@@ -145,6 +150,8 @@ class Plane:
 
     def hit(self):
         self.hp -= 1
+        if self.hp <= 0:
+            self.alive = False
         return self.hp
 
     def draw(self, surface):
@@ -178,28 +185,37 @@ class Plane:
 
 # ---------- BASE CLASS ----------
 class Base:
-    def __init__(self, team):
+    def __init__(self, team, hp):
         self.team = team
         self.color = RED if self.team == 'red' else BLUE
         self.image = pygame.image.load(f"assets/{team}_base.png")
         self.w, self.h = self.image.get_size()
+        self.xmin = self.w / 2
+        self.xmax = DISP_WIDTH - (self.w / 2)
+        self.ymin = self.h / 2
+        self.ymax = DISP_HEIGHT - (self.h / 2)
         self.rect = self.image.get_rect()
         self.reset()
-        self.hp = 3
+        self.max_hp = hp
+        self.hp = self.max_hp
+        self.alive = True
         
     def reset(self):
-        self.hp = 3
+        self.alive = True
+        self.hp = self.max_hp
         if self.team == 'red':
-            x = (DISP_WIDTH - self.w)/4 * random.random() + self.w/2
-            y = (DISP_HEIGHT - self.h) * random.random() + self.h/2
+            x = self.xmax/3 * random.random()
+            y = self.ymax * random.random()
             self.rect.center = (x, y)
         else:
-            x = (DISP_WIDTH - self.w)/4 * random.random() + (DISP_WIDTH - self.w/2)/4*3 + self.w/2
-            y = (DISP_HEIGHT - self.h) * random.random() + self.h/2
+            x = self.xmax/3 * random.random() + (2 * self.xmax) / 3
+            y = self.ymax * random.random()
             self.rect.center = (x, y)
 
     def hit(self):
         self.hp -= 1
+        if self.hp <= 0:
+            self.alive = False
         return self.hp
 
     def draw(self, surface):
@@ -248,12 +264,12 @@ class Bullet(pygame.sprite.Sprite):
 
         # Hit if collides with enemy base
         if self.rect.colliderect(self.oteam['base']):
-            return 'base'
+            return self.oteam['base']
 
         # Hit if collides with any enemy plane
         for plane in self.oteam['planes']:
             if self.rect.colliderect(plane.rect):
-                return 'plane'
+                return plane
         return 'none'
 
     def draw(self, surface):
@@ -268,15 +284,17 @@ class Bullet(pygame.sprite.Sprite):
 
 # ----------- BATTLE ENVIRONMENT -----------
 class raw_env(AECEnv):
-    def __init__(self, n_agents=1, show=False, hit_base_reward=10, hit_plane_reward=2, miss_punishment=0, lose_punishment=-3, fps=30):
+    def __init__(self, n_agents=1, show=False, hit_base_reward=10, hit_plane_reward=2, miss_punishment=0, lose_punishment=-3, die_punishment=-3, fps=20):
         super(raw_env, self).__init__()
         self.n_agents = n_agents
 
+        base_hp = 5 * self.n_agents
+        plane_hp = 3
         self.team = {}
         self.team['red'] = {}
         self.team['blue'] = {}
-        self.team['red']['base'] = Base('red')
-        self.team['blue']['base'] = Base('blue')
+        self.team['red']['base'] = Base('red', base_hp)
+        self.team['blue']['base'] = Base('blue', base_hp)
         self.team['red']['planes'] = {}
         self.team['blue']['planes'] = {}
         self.team['red']['wins'] = 0
@@ -286,10 +304,10 @@ class raw_env(AECEnv):
         self.team_map = {}
         for i in range(len(self.agents)):
             if i < self.n_agents:
-                self.team['red']['planes'][self.agents[i]] = Plane('red')
+                self.team['red']['planes'][self.agents[i]] = Plane('red', plane_hp)
                 self.team_map[f'plane_{i}'] = 'red'
             else:
-                self.team['blue']['planes'][self.agents[i]] = Plane('blue')
+                self.team['blue']['planes'][self.agents[i]] = Plane('blue', plane_hp)
                 self.team_map[f'plane_{i}'] = 'blue'
 
         self.possible_agents = self.agents[:]
@@ -301,6 +319,7 @@ class raw_env(AECEnv):
         obs['base_dist'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
         obs['base_angle'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
         for i in range(n_agents):
+            obs[f'plane_{i}_alive'] = spaces.Box(-1, 1, dtype=np.int16, shape=(1,))
             obs[f'plane_{i}_dist'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
             obs[f'plane_{i}_angle'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
 
@@ -316,7 +335,7 @@ class raw_env(AECEnv):
         # ---------- Initialize values ----------
         self.width = DISP_WIDTH
         self.height = DISP_HEIGHT
-        self.max_time = 10
+        self.max_time = 8 + (self.n_agents * 2)
         self.total_games = 0
         self.ties = 0
         self.bullets = []
@@ -330,6 +349,7 @@ class raw_env(AECEnv):
         self.hit_plane_reward = hit_plane_reward
         self.miss_punishment = miss_punishment
         self.lose_punishment = lose_punishment
+        self.die_punishment = die_punishment
         self.fps = fps
 
     def observation_space(self, agent):
@@ -354,6 +374,7 @@ class raw_env(AECEnv):
         dct['base_angle'] = rel_angle(agent_pos, agent_dir, obase_pos) / 360
         for key, plane in oplanes.items():
             plane_pos = plane.get_pos()
+            dct[f'{key}_alive'] = 1 if plane.alive else 0
             dct[f'{key}_dist'] = dist(agent_pos, plane_pos) / (math.sqrt(math.pow(self.width, 2) + math.pow(self.height, 2))) * 2 - 1
             dct[f'{key}_angle'] = rel_angle(agent_pos, agent_dir, plane_pos) / 360
 
@@ -390,93 +411,87 @@ class raw_env(AECEnv):
         self.dones = {False for _ in self.agents}
         self.infos = {{} for _ in self.agents}
 
-    def step(self, action): # return observation, reward, done, info
-        if self.dones[self.agent_selection]: # Checks if agent is already done
+    def step(self, action):
+        # Checks if agent is already done
+        if self.dones[self.agent_selection]: 
             return self._was_done_step(action)
 
-        all_agents_updated = self._agent_selector.is_last()
-
         self.rewards = {agent: 0 for agent in self.agents}
-
         agent_id = self.agent_selection
-        agent = self.team['red']['planes'][agent_id] if agent_id in self.team['red']['planes'] else self.team['blue']['planes'][agent_id]
-
-        self._cumulative_rewards[agent] = 0
-
-        # Collect reward if it is the last agent to step
-        if self._agent_selector.is_last():
-            self.rewards[self.agents[0]]
 
         # Take action
-        self._process_action(action, agent)
+        self.process_action(action, agent_id)
 
-        # Check if bullets hit and move them
-        for bullet in self.bullets[:]:
-            outcome = bullet.update(self.width, self.height, self.time_step)
-            if outcome == 'miss':
-                reward = reward + self.miss_punishment if bullet.fcolor == 'red' else 0
-                self.bullets.remove(bullet)
+        # If it's the last agent, we need to move bullets and check for wins/ties
+        all_agents_updated = self._agent_selector.is_last()
+        if all_agents_updated:
+            # Move every bullet and check for hits
+            for bullet in self.bullets[:]:
+                # Move bullet and gather outcome
+                outcome = bullet.update(self.width, self.height, self.time_step)
 
-            elif outcome == 'base': # bullet hits base
-                newhp = bullet.obase.hit()
-                reward = reward + self.hit_base_reward if bullet.fcolor == 'red' else 0
-                if newhp <= 0: # won the game
-                    self.winner = bullet.fcolor
-                    self.team[bullet.fcolor]['wins'] += 1
-                    if not self.winner == 'red':
-                        reward += self.lose_punishment
-                    self.total_games += 1
-                    self.done = True
-
-                    if self.show:
-                        self.render()
-                        print(f"{self.winner} wins")
-                        
-                    return self._get_observation('red'), reward, self.done, {}
-                else:
+                # Kill bullet if miss
+                if outcome == 'miss':
+                    self.rewards[agent_id] += self.miss_punishment
                     self.bullets.remove(bullet)
-            
-            elif outcome == 'plane': # bullet hits plane
-                newhp = bullet.oplane.hit()
-                reward = reward + self.hit_plane_reward if bullet.fcolor == 'red' else 0
-                if newhp <= 0: # won the game
-                    self.winner = bullet.fcolor
-                    self.team[bullet.fcolor]['wins'] += 1
-                    if not self.winner == 'red':
-                        reward += self.lose_punishment
-                    self.total_games += 1
-                    self.done = True
 
-                    if self.show:
-                        self.render()
-                        print(f"{self.winner} wins")
+                # Kill bullet and provide reward if hits base
+                elif isinstance(outcome, Base):
+                    outcome.hit()
+                    self.rewards[agent_id] += self.hit_base_reward
 
-                    return self._get_observation('red'), reward, self.done, {}
-                else:
+                    # Won the game (base is dead)
+                    if not outcome.alive:
+                        self.winner = bullet.fcolor
+                        self.team[bullet.fcolor]['wins'] += 1
+
+                        # Give lose_punishment to enemy team planes
+                        for key, plane in self.team_map:
+                            if plane == outcome.team:
+                                self.rewards[key] += self.lose_punishment
+
+                        self.total_games += 1
+                        self.dones = {True for _ in self.agents}
+
+                        if self.show:
+                            self.render()
+                            print(f"{self.winner} wins")
+
+                    # Didn't win, just hit the base
+                    else:
+                        self.bullets.remove(bullet)
+                
+                # Kill bullet and provide reward if hits plane
+                elif isinstance(outcome, Plane):
+                    outcome.hit()
+                    self.rewards[agent_id] += self.hit_plane_reward
                     self.bullets.remove(bullet)
-            
-        # Check if past half of max time and give punishment
-        if (self.total_time > self.max_time//2):
-            reward += self.too_long_punishment
 
-        # Check if over time, if so, end game in tie
-        self.total_time += self.time_step
-        if self.total_time >= self.max_time:
-            self.done = True
-            self.total_games += 1
-            self.ties += 1
+                    # Plane is dead
+                    if not outcome.alive:
+                        self.reward[agent_id] += self.die_punishment
+                        self.dones[agent_id] = True
+
+            # Increase time and check for a tie
+            self.total_time += self.time_step
+            if self.total_time >= self.max_time:
+                self.dones = {True for _ in self.agents}
+                self.winner = 'tie'
+                self.total_games += 1
+                self.ties += 1
+
+            # Render the environment
             if self.show:
                 self.render()
-                print("Draw")
-            return self._get_observation('red'), 0, self.done, {}
 
-        # Continue game
-        if self.show:
-            self.render()
-        return self._get_observation('red'), reward, self.done, {}
+        # Select next agent if game not over
+        if self.winner == 'none':
+            self.agent_selection = self._agent_selector.next()
+
+        # Adds rewards
+        self._accumulate_rewards()
     
-    # Takes an action sent from self.step()
-    def _process_action(self, action, agent_id):
+    def process_action(self, action, agent_id):
         agent = self.team['red']['planes'][agent_id] if agent_id in self.team['red']['planes'] else self.team['blue']['planes'][agent_id]
         team = 'red' if agent_id in self.team['red']['planes'] else 'blue'
         oteam = 'blue' if team == 'red' else 'red'
@@ -505,7 +520,7 @@ class raw_env(AECEnv):
     def winner_screen(self):
         if self.show:
             font = pygame.font.Font('freesansbold.ttf', 32)
-            if self.winner != 'none':
+            if self.winner != 'none' and self.winner != 'tie':
                 text = font.render(f"THE WINNER IS {self.winner.upper()}", True, BLACK)
                 textRect = text.get_rect()
                 textRect.center = (DISP_WIDTH//2, DISP_HEIGHT//2)
@@ -523,17 +538,16 @@ class raw_env(AECEnv):
         sys.exit()
 
     def render(self, mode="human"):
-        if self.show: # Just to ensure it won't render if self.show == False
+        # Just to ensure it won't render if self.show == False
+        if self.show: 
+            # Check if we should quit
             for event in pygame.event.get():
-                # Check for KEYDOWN event
                 if event.type == KEYDOWN:
-                    # If the Esc key is pressed, then exit the main loop
                     if event.key == K_ESCAPE:
                         self.close()
-                # Check for QUIT event. If QUIT, then set running to false.
                 elif event.type == QUIT:
                     self.close()
-                    
+            
             font = pygame.font.Font('freesansbold.ttf', 12)
 
             # Fill background
@@ -548,31 +562,21 @@ class raw_env(AECEnv):
             self.team['blue']['base'].draw(self.display)
 
             # Draw planes
-            for plane in self.team['red']['planes']:
-                plane.update()
-                plane.draw(self.display)
-            for plane in self.team['blue']['planes']:
-                plane.update()
-                plane.draw(self.display)
+            for plane in self.team['red']['planes'].values():
+                if plane.alive:
+                    plane.update()
+                    plane.draw(self.display)
+            for plane in self.team['blue']['planes'].values():
+                if plane.alive:
+                    plane.update()
+                    plane.draw(self.display)
 
-            # Winner Screen
-            if self.done:
-                font = pygame.font.Font('freesansbold.ttf', 32)
-                if self.winner != 'none':
-                    text = font.render(f"THE WINNER IS {self.winner.upper()}", True, BLACK)
-                    textRect = text.get_rect()
-                    textRect.center = (DISP_WIDTH//2, DISP_HEIGHT//2)
-                else:
-                    text = font.render(f"THE GAME IS A TIE", True, BLACK)
-                    textRect = text.get_rect()
-                    textRect.center = (DISP_WIDTH//2, DISP_HEIGHT//2)
-                self.display.blit(text, textRect)
+            # Calls winner screen if done
+            if self.winner != 'none':
+                self.winner_screen()
                 pygame.display.update()
-                pygame.time.wait(1000)
-                pygame.quit()
-                return
-        
+                pygame.time.wait(1500)
+                self.close()
+
             pygame.display.update()
             self.clock.tick(self.fps)
-
-# env_checker.check_env(BattleEnvironment())
