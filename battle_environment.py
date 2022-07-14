@@ -22,8 +22,8 @@ BLACK = (0, 0, 0)
 DISP_WIDTH = 1000
 DISP_HEIGHT = 1000
 
-def env():
-    env = raw_env()
+def env(**kwargs):
+    env = raw_env(**kwargs)
     # This wrapper is only for environments which print results to the terminal
     env = wrappers.CaptureStdoutWrapper(env)
     # this wrapper helps error handling for discrete action spaces
@@ -78,6 +78,10 @@ class Plane:
         self.color = RED if self.team == 'red' else BLUE
         self.image = pygame.image.load(f"assets/{team}_plane.png")
         self.w, self.h = self.image.get_size()
+        self.xmin = self.w / 2
+        self.xmax = DISP_WIDTH - (self.w / 2)
+        self.ymin = self.h / 2
+        self.ymax = DISP_HEIGHT - (self.h / 2)
         self.direction = 0
         self.rect = self.image.get_rect()
         self.hp = 3
@@ -86,16 +90,26 @@ class Plane:
     def reset(self):
         self.hp = 3
         if self.team == 'red':
-            x = (DISP_WIDTH - self.w)/4 * random.random() + self.w/2
-            y = (DISP_HEIGHT - self.h)/2 * random.random() + self.h/2
+            x = self.xmax/3 * random.random()
+            y = self.ymax * random.random()
             self.rect.center = (x, y)
             self.direction = 180 * random.random() + 270
             if self.direction >= 360: self.direction -= 360
         else:
-            x = (DISP_WIDTH - self.w)/4 * random.random() + (DISP_WIDTH - self.w/2)/4*3 + self.w/2
-            y = (DISP_HEIGHT - self.h)/2 * random.random() + self.h/2
+            x = self.xmax/3 * random.random() + (2 * self.xmax) / 3
+            y = self.ymax * random.random()
             self.rect.center = (x, y)
             self.direction = 90 * random.random() + 180
+        
+        # Keep player on the screen
+        if self.rect.left < 0:
+            self.rect.left = 0
+        if self.rect.right > DISP_WIDTH:
+            self.rect.right = DISP_WIDTH
+        if self.rect.top <= 0:
+            self.rect.top = 0
+        if self.rect.bottom >= DISP_HEIGHT:
+            self.rect.bottom = DISP_HEIGHT
         
     def rotate(self, angle):
         self.direction += angle
@@ -203,14 +217,13 @@ class Base:
 
 # ---------- BULLET CLASS ----------
 class Bullet(pygame.sprite.Sprite):
-    def __init__(self, x, y, angle, speed, fcolor, oplane, obase):
+    def __init__(self, x, y, angle, speed, fcolor, oteam):
         pygame.sprite.Sprite.__init__(self)
         self.off_screen = False
         self.image = pygame.Surface((6, 3), pygame.SRCALPHA)
         self.fcolor = fcolor
         self.color = RED if self.fcolor == 'red' else BLUE
-        self.oplane = oplane
-        self.obase = obase
+        self.oteam = oteam
         self.image.fill(self.color)
         self.rect = self.image.get_rect(center=(x, y))
         self.w, self.h = self.image.get_size()
@@ -220,18 +233,27 @@ class Bullet(pygame.sprite.Sprite):
         self.dist_travelled = 0
         self.max_dist = 600
 
+    # Checks the status of the bullet (hit or miss or neither)
     def update(self, screen_width, screen_height, time):
         oldpos = self.rect.center
         self.rect.center = calc_new_xy(oldpos, self.speed, time, self.direction)
         self.dist_travelled += self.speed * time
+        # Miss if travelled max dist
         if self.dist_travelled >= self.max_dist:
             return 'miss'
+        
+        # Miss if goes off screen
         elif self.rect.centerx > screen_width or self.rect.centerx < 0 or self.rect.centery > screen_height or self.rect.centery < 0:
             return 'miss'
-        if self.rect.colliderect(self.oplane.rect):
-            return 'plane'
-        if self.rect.colliderect(self.obase.rect):
+
+        # Hit if collides with enemy base
+        if self.rect.colliderect(self.oteam['base']):
             return 'base'
+
+        # Hit if collides with any enemy plane
+        for plane in self.oteam['planes']:
+            if self.rect.colliderect(plane.rect):
+                return 'plane'
         return 'none'
 
     def draw(self, surface):
@@ -245,41 +267,42 @@ class Bullet(pygame.sprite.Sprite):
         return self.direction
 
 # ----------- BATTLE ENVIRONMENT -----------
-class BattleEnvironment(AECEnv):
-    def __init__(self, config, n_agents):
-        super(BattleEnvironment, self).__init__()
+class raw_env(AECEnv):
+    def __init__(self, n_agents=1, show=False, hit_base_reward=10, hit_plane_reward=2, miss_punishment=0, lose_punishment=-3, fps=30):
+        super(raw_env, self).__init__()
+        self.n_agents = n_agents
 
         self.team = {}
         self.team['red'] = {}
         self.team['blue'] = {}
         self.team['red']['base'] = Base('red')
         self.team['blue']['base'] = Base('blue')
-        self.team['red']['planes'] = []
-        self.team['blue']['planes'] = []
+        self.team['red']['planes'] = {}
+        self.team['blue']['planes'] = {}
         self.team['red']['wins'] = 0
         self.team['blue']['wins'] = 0
 
-        self.possible_agents = []
-        self.n_agents = n_agents
+        self.agents = [f"plane_{r}" for r in range(self.n_agents * 2)]
+        self.team_map = {}
+        for i in range(len(self.agents)):
+            if i < self.n_agents:
+                self.team['red']['planes'][self.agents[i]] = Plane('red')
+                self.team_map[f'plane_{i}'] = 'red'
+            else:
+                self.team['blue']['planes'][self.agents[i]] = Plane('blue')
+                self.team_map[f'plane_{i}'] = 'blue'
 
-        for i in range(n_agents):
-            self.team['red']['planes'].append(Plane('red'))
-            self.possible_agents.append(self.team['red']['planes'][i])
-        for i in range(n_agents):
-            self.team['blue']['planes'].append(Plane('blue'))
-            self.possible_agents.append(self.team['blue']['planes'][i])
-
-        self.agent_name_mapping = dict(
-            zip(self.possible_agents, list(range(len(self.possible_agents))))
-        )
+        self.possible_agents = self.agents[:]
+        self.agent_name_mapping = dict(zip(self.agents, list(range(self.n_agents))))
+        self._agent_selector = agent_selector(self.agents)
 
         obs = {} # Observation per agent, consists of dist + angle of each enemy, and base
 
         obs['base_dist'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
         obs['base_angle'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
         for i in range(n_agents):
-            obs[f'plane{i}_dist'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
-            obs[f'plane{i}_angle'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
+            obs[f'plane_{i}_dist'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
+            obs[f'plane_{i}_angle'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
 
         mins = np.array([x.low[0] for x in obs.values()])
         maxs = np.array([x.high[0] for x in obs.values()])
@@ -302,16 +325,23 @@ class BattleEnvironment(AECEnv):
         self.total_time = 0 # in hours
         self.time_step = 0.1 # hours per time step
         self.step_turn = 20 # degrees to turn per step
-        self.show = config['show'] # show the pygame animation
-        self.hit_base_reward = config['hit_base_reward']
-        self.hit_plane_reward = config['hit_plane_reward']
-        self.miss_punishment = config['miss_punishment']
-        self.lose_punishment = config['lose_punishment']
-        self.fps = config['fps']
+        self.show = show # show the pygame animation
+        self.hit_base_reward = hit_base_reward
+        self.hit_plane_reward = hit_plane_reward
+        self.miss_punishment = miss_punishment
+        self.lose_punishment = lose_punishment
+        self.fps = fps
+
+    def observation_space(self, agent):
+        return self.observation_spaces[agent]
+
+    def action_space(self, agent):
+        return self.action_spaces[agent]
     
     def observe(self, agent):
-        oteam = 'blue' if agent.team == 'red' else 'red'
-        agent_plane = self.team[agent.team]['planes'][int(agent[-1])]
+        agent_team = self.team_map[agent]
+        agent_plane = self.team[agent_team]['planes'][agent]
+        oteam = 'blue' if agent_team == 'red' else 'red'
         agent_pos = agent_plane.get_pos()
         agent_dir = agent_plane.get_direction()
         oplanes = self.team[oteam]['planes']
@@ -319,27 +349,17 @@ class BattleEnvironment(AECEnv):
         obase_pos = obase.get_pos()
 
         dct = {}
+
         dct['base_dist'] = dist(agent_pos, obase_pos) / (math.sqrt(math.pow(self.width, 2) + math.pow(self.height, 2))) * 2 - 1
         dct['base_angle'] = rel_angle(agent_pos, agent_dir, obase_pos) / 360
-        for i in range(oplanes):
-            plane_pos = oplanes[i].get_pos()
-            dct[f'plane{i}_dist'] = dist(agent_pos, plane_pos) / (math.sqrt(math.pow(self.width, 2) + math.pow(self.height, 2))) * 2 - 1
-            dct[f'plane{i}_angle'] = rel_angle(agent_pos, agent_dir, plane_pos) / 360
+        for key, plane in oplanes.items():
+            plane_pos = plane.get_pos()
+            dct[f'{key}_dist'] = dist(agent_pos, plane_pos) / (math.sqrt(math.pow(self.width, 2) + math.pow(self.height, 2))) * 2 - 1
+            dct[f'{key}_angle'] = rel_angle(agent_pos, agent_dir, plane_pos) / 360
 
         return np.array([x for x in dct.values()], dtype=np.float32)
 
     def reset(self):
-        self.agents = self.possible_agents[:]
-        self.rewards = {agent: 0 for agent in self.agents}
-        self._cumulative_rewards = {agent: 0 for agent in self.agents}
-        self.dones = {agent: False for agent in self.agents}
-        self.infos = {agent: {} for agent in self.agents}
-        self.state = {agent: -1 for agent in self.agents}
-        self.observations = {agent: -1 for agent in self.agents}
-        self.num_moves = 0
-        self._agent_selector = agent_selector(self.agents)
-        self.agent_selection = self.agent_selector.next()
-
         self.winner = 'none'
 
         self.team['red']['base'].reset()
@@ -361,34 +381,34 @@ class BattleEnvironment(AECEnv):
             pygame.display.set_caption("Battlespace Simulator")
             pygame.time.wait(1000)
 
+        self.agents = self.possible_agents[:]
+        self._agent_selector.reinit(self.agents)
+        self.agent_selection = self._agent_selector.next()
+
+        self.rewards = {0 for _ in self.agents}
+        self._cumulative_rewards = {0 for _ in self.agents}
+        self.dones = {False for _ in self.agents}
+        self.infos = {{} for _ in self.agents}
+
     def step(self, action): # return observation, reward, done, info
         if self.dones[self.agent_selection]: # Checks if agent is already done
             return self._was_done_step(action)
 
-        agent = self.agent_selection
+        all_agents_updated = self._agent_selector.is_last()
+
+        self.rewards = {agent: 0 for agent in self.agents}
+
+        agent_id = self.agent_selection
+        agent = self.team['red']['planes'][agent_id] if agent_id in self.team['red']['planes'] else self.team['blue']['planes'][agent_id]
 
         self._cumulative_rewards[agent] = 0
-        self.state[self.agent_selection] = action
 
         # Collect reward if it is the last agent to step
         if self._agent_selector.is_last():
             self.rewards[self.agents[0]]
-        # Check if over time, if so, end game in tie
-        self.total_time += self.time_step
-        if self.total_time >= self.max_time:
-            self.done = True
-            self.total_games += 1
-            self.ties += 1
-            if self.show:
-                self.render()
-                print("Draw")
-            return self._get_observation('red'), 0, self.done, {}
 
-        # Red turn
-        self._process_action(action, 'red', 'blue')
-        
-        # Blue turn
-        self._process_action(self.blue_ai.predict(self._get_observation('blue'))[0], 'blue', 'red')        
+        # Take action
+        self._process_action(action, agent)
 
         # Check if bullets hit and move them
         for bullet in self.bullets[:]:
@@ -439,65 +459,48 @@ class BattleEnvironment(AECEnv):
         if (self.total_time > self.max_time//2):
             reward += self.too_long_punishment
 
+        # Check if over time, if so, end game in tie
+        self.total_time += self.time_step
+        if self.total_time >= self.max_time:
+            self.done = True
+            self.total_games += 1
+            self.ties += 1
+            if self.show:
+                self.render()
+                print("Draw")
+            return self._get_observation('red'), 0, self.done, {}
+
         # Continue game
         if self.show:
             self.render()
         return self._get_observation('red'), reward, self.done, {}
     
-    def _process_action(self, action, fteam, oteam): # friendly and opponent teams
-        fcolor = fteam
-        ocolor = oteam
-
-        fplane = self.team[fcolor]['planes'][0]
-        obase = self.team[ocolor]['base']
-        oplane = self.team[ocolor]['planes'][0]
-
-        fplane_pos = fplane.get_pos()
-        fplane_direction = fplane.get_direction()
-        obase_pos = obase.get_pos()
-        oplane_pos = oplane.get_pos()
-
-        rel_angle_oplane = rel_angle(fplane_pos, fplane_direction, oplane_pos)
-        rel_angle_obase = rel_angle(fplane_pos, fplane_direction, obase_pos)
+    # Takes an action sent from self.step()
+    def _process_action(self, action, agent_id):
+        agent = self.team['red']['planes'][agent_id] if agent_id in self.team['red']['planes'] else self.team['blue']['planes'][agent_id]
+        team = 'red' if agent_id in self.team['red']['planes'] else 'blue'
+        oteam = 'blue' if team == 'red' else 'red'
+        agent_pos = agent.get_pos()
+        agent_dir = agent.get_direction()
 
         # --------------- FORWARD ---------------
         if action == 0: 
-            fplane.forward(self.speed, self.time_step)
+            agent.forward(self.speed, self.time_step)
 
          # --------------- SHOOT ---------------
         elif action == 1:
-            self.bullets.append(Bullet(fplane_pos[0], fplane_pos[1], fplane_direction, self.bullet_speed, fcolor, self.team[ocolor]['planes'][0], self.team[ocolor]['base']))
-            fplane.forward(self.speed, self.time_step)
+            self.bullets.append(Bullet(agent_pos[0], agent_pos[1], agent_dir, self.bullet_speed, team, self.team[oteam]))
+            agent.forward(self.speed, self.time_step)
         
         # --------------- TURN LEFT ---------------
         elif action == 2:
-            fplane.rotate(self.step_turn)
-            fplane.forward(self.speed, self.time_step)
+            agent.rotate(self.step_turn)
+            agent.forward(self.speed, self.time_step)
 
         # ---------------- TURN RIGHT ----------------
         elif action == 3:
-            fplane.rotate(-self.step_turn)
-            fplane.forward(self.speed, self.time_step)
-    
-        # --------------- TURN TO ENEMY PLANE ---------------
-        elif action == 4:
-            if math.fabs(rel_angle_oplane) < self.step_turn:
-                fplane.rotate(-rel_angle_oplane)
-            elif rel_angle_oplane < 0:
-                fplane.rotate(self.step_turn)
-            else:
-                fplane.rotate(-self.step_turn)
-            fplane.forward(self.speed, self.time_step)
-
-        # ---------------- TURN TO ENEMY BASE ----------------
-        elif action == 5:
-            if math.fabs(rel_angle_obase) < self.step_turn:
-                fplane.rotate(-rel_angle_obase)
-            elif rel_angle_obase < 0:
-                fplane.rotate(self.step_turn)
-            else:
-                fplane.rotate(-self.step_turn)
-            fplane.forward(self.speed, self.time_step)
+            agent.rotate(-self.step_turn)
+            agent.forward(self.speed, self.time_step)
 
     def winner_screen(self):
         if self.show:
