@@ -477,7 +477,7 @@ class raw_env(AECEnv):
 
                     # Plane is dead
                     if not outcome.alive:
-                        self.reward[agent_id] += self.die_punishment
+                        self.rewards[agent_id] += self.die_punishment
                         self.dones[agent_id] = True
 
             # Increase time and check for a tie
