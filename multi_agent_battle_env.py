@@ -284,12 +284,14 @@ class Bullet(pygame.sprite.Sprite):
 
 # ----------- BATTLE ENVIRONMENT -----------
 class raw_env(AECEnv):
+
     metadata = {
         "render_modes": ["human"],
         "name": "battle_env_v1",
         "is_parallelizable": False,
         "render_fps": 30,
     }
+
     def __init__(self, n_agents=1, show=False, hit_base_reward=10, hit_plane_reward=2, miss_punishment=0, lose_punishment=-3, die_punishment=-3, fps=20):
         super(raw_env, self).__init__()
         self.n_agents = n_agents
@@ -412,20 +414,22 @@ class raw_env(AECEnv):
         self._agent_selector.reinit(self.agents)
         self.agent_selection = self._agent_selector.next()
 
-        self.rewards = dict(zip(self.agents, [0 for _ in self.agents]))
-        self._cumulative_rewards = dict(zip(self.agents, [0 for _ in self.agents]))
-        self.dones = dict(zip(self.agents, [False for _ in self.agents]))
-        self.infos = dict(zip(self.agents, [{} for _ in self.agents]))
+        self.rewards = {agent: 0 for agent in self.agents}
+        self._cumulative_rewards = {agent: 0 for agent in self.agents}
+        self.dones = {agent: False for agent in self.agents}
+        self.infos = {agent: {} for agent in self.agents}
 
     def step(self, action):
-        # Checks if agent is already done
-        if self.dones[self.agent_selection]: 
-            return self._was_done_step(action)
-
+        
+        # Set rewards and cumulative rewards to 0
         self.rewards = {agent: 0 for agent in self.agents}
         agent_id = self.agent_selection
-
         self._cumulative_rewards[agent_id] = 0
+
+        # Checks if agent is already done
+        if self.dones[self.agent_selection]:
+            self.dones[agent_id] = True
+            return self._was_done_step(action)
 
         # Take action
         self.process_action(action, agent_id)
@@ -546,44 +550,43 @@ class raw_env(AECEnv):
 
     def render(self, mode="human"):
         # Just to ensure it won't render if self.show == False
-        if self.show: 
-            # Check if we should quit
-            for event in pygame.event.get():
-                if event.type == KEYDOWN:
-                    if event.key == K_ESCAPE:
-                        self.close()
-                elif event.type == QUIT:
-                    self.close()
+        if not self.show: return
             
-            font = pygame.font.Font('freesansbold.ttf', 12)
-
-            # Fill background
-            self.display.fill(WHITE)
-
-            # Draw bullets
-            for bullet in self.bullets:
-                bullet.draw(self.display)
-                    
-            # Draw bases
-            self.team['red']['base'].draw(self.display)
-            self.team['blue']['base'].draw(self.display)
-
-            # Draw planes
-            for plane in self.team['red']['planes'].values():
-                if plane.alive:
-                    plane.update()
-                    plane.draw(self.display)
-            for plane in self.team['blue']['planes'].values():
-                if plane.alive:
-                    plane.update()
-                    plane.draw(self.display)
-
-            # Calls winner screen if done
-            if self.winner != 'none':
-                self.winner_screen()
-                pygame.display.update()
-                pygame.time.wait(1500)
+        # Check if we should quit
+        for event in pygame.event.get():
+            if event.type == KEYDOWN:
+                if event.key == K_ESCAPE:
+                    self.close()
+            elif event.type == QUIT:
                 self.close()
 
+        # Fill background
+        self.display.fill(WHITE)
+
+        # Draw bullets
+        for bullet in self.bullets:
+            bullet.draw(self.display)
+                
+        # Draw bases
+        self.team['red']['base'].draw(self.display)
+        self.team['blue']['base'].draw(self.display)
+
+        # Draw planes
+        for plane in self.team['red']['planes'].values():
+            if plane.alive:
+                plane.update()
+                plane.draw(self.display)
+        for plane in self.team['blue']['planes'].values():
+            if plane.alive:
+                plane.update()
+                plane.draw(self.display)
+
+        # Calls winner screen if done
+        if self.winner != 'none':
+            self.winner_screen()
             pygame.display.update()
-            self.clock.tick(self.fps)
+            pygame.time.wait(1500)
+            self.close()
+
+        pygame.display.update()
+        self.clock.tick(self.fps)
