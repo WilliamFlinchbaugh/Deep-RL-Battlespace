@@ -2,14 +2,10 @@ import random
 import pygame
 from pygame.locals import *
 import numpy as np
-import numpy.linalg as LA
 import math
-from collections import defaultdict
 import gym
 from gym import spaces
 import os
-import sys
-import functools
 from pettingzoo import AECEnv
 from pettingzoo.utils import agent_selector
 from pettingzoo.utils import wrappers
@@ -73,7 +69,8 @@ def calc_new_xy(old_xy, speed, time, angle):
 
 # ---------- PLANE CLASS ----------
 class Plane:
-    def __init__(self, team, hp):
+    def __init__(self, team, hp, id):
+        self.id = id
         self.team = team
         self.color = RED if self.team == 'red' else BLUE
         self.image = pygame.image.load(f"assets/{team}_plane.png")
@@ -325,8 +322,8 @@ class raw_env(AECEnv):
         super(raw_env, self).__init__()
         self.n_agents = n_agents
 
-        base_hp = 5 * self.n_agents
-        plane_hp = 3
+        base_hp = 4 * self.n_agents
+        plane_hp = 2
         self.team = {}
         self.team['red'] = {}
         self.team['blue'] = {}
@@ -341,10 +338,10 @@ class raw_env(AECEnv):
         self.team_map = {}
         for i in range(len(self.agents)):
             if i < self.n_agents:
-                self.team['red']['planes'][self.agents[i]] = Plane('red', plane_hp)
+                self.team['red']['planes'][self.agents[i]] = Plane('red', plane_hp, self.agents[i])
                 self.team_map[f'plane_{i}'] = 'red'
             else:
-                self.team['blue']['planes'][self.agents[i]] = Plane('blue', plane_hp)
+                self.team['blue']['planes'][self.agents[i]] = Plane('blue', plane_hp, self.agents[i])
                 self.team_map[f'plane_{i}'] = 'blue'
 
         self.possible_agents = self.agents[:]
@@ -372,7 +369,7 @@ class raw_env(AECEnv):
         # ---------- Initialize values ----------
         self.width = DISP_WIDTH
         self.height = DISP_HEIGHT
-        self.max_time = 8 + (self.n_agents * 2)
+        self.max_time = 8 + (self.n_agents * 3)
         self.total_games = 0
         self.ties = 0
         self.bullets = []
@@ -450,7 +447,6 @@ class raw_env(AECEnv):
         self.infos = {agent: {} for agent in self.agents}
 
     def step(self, action):
-        
         # Set rewards and cumulative rewards to 0
         self.rewards = {agent: 0 for agent in self.agents}
         agent_id = self.agent_selection
@@ -511,13 +507,11 @@ class raw_env(AECEnv):
 
                     # Plane is dead
                     if not outcome.alive:
-                        print(agent_id, "died")
-                        self.explosions.append(Explosion(self.team[self.team_map[agent_id]]['planes'][agent_id].get_pos()))
-                        if agent_id in self.agents:
-                            self.agents.remove(agent_id)
-                        self.team[self.team_map[agent_id]]['planes'].pop(agent_id)
-                        self.rewards[agent_id] += self.die_punishment
-                        self.dones[agent_id] = True
+                        self.explosions.append(Explosion(outcome.get_pos()))
+                        self.agents.remove(outcome.id)
+                        self.team[outcome.team]['planes'].pop(outcome.id)
+                        self.rewards[outcome.id] += self.die_punishment
+                        self.dones[outcome.id] = True
 
             # Increase time and check for a tie
             self.total_time += self.time_step
@@ -581,7 +575,6 @@ class raw_env(AECEnv):
 
     def close(self):
         pygame.quit()
-        sys.exit()
 
     def render(self, mode="human"):
         # Just to ensure it won't render if self.show == False

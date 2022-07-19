@@ -15,14 +15,12 @@ cf = {
 env = battle_v1.env(**cf)
 
 # Random choice evaluation
-episodes = 5
-for i in range(episodes):
-    env.reset()
-    for agent in env.agent_iter():
-        if env.dones[agent]:
-            env.step(None)
-            continue
-        observation, reward, done, info = env.last()
-        action = env.action_space(agent).sample()
-        env.step(action)
-    env.close()
+env.reset()
+for agent in env.agent_iter():
+    if env.dones[agent]:
+        env.step(None)
+        continue
+    observation, reward, done, info = env.last()
+    action = env.action_space(agent).sample()
+    env.step(action)
+env.close()
