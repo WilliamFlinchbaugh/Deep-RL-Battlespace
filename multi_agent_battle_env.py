@@ -19,8 +19,8 @@ WHITE = (255, 255, 255)
 RED = (138, 24, 26)
 BLUE = (0, 93, 135)
 BLACK = (0, 0, 0)
-DISP_WIDTH = 1000
-DISP_HEIGHT = 1000
+DISP_WIDTH = 1200
+DISP_HEIGHT = 800
 
 def env(**kwargs):
     env = raw_env(**kwargs)
@@ -282,6 +282,35 @@ class Bullet(pygame.sprite.Sprite):
     def get_direction(self):
         return self.direction
 
+# ---------- EXPLOSION CLASS ----------
+class Explosion(pygame.sprite.Sprite):
+    def __init__(self, center):
+        pygame.sprite.Sprite.__init__(self)
+
+        # Load in the animation photos
+        self.explosion_anim = []
+        for i in range(9):
+            img = pygame.image.load(f"assets/explode{i}.png")
+            img.set_colorkey(BLACK)
+            img_sm = pygame.transform.scale(img, (64, 64))
+            self.explosion_anim.append(img_sm)
+
+        self.frame = 0
+        self.image = self.explosion_anim[self.frame]
+        self.rect = self.image.get_rect()
+        self.rect.center = center
+
+    def draw(self, surface):
+        if not self.frame == len(self.explosion_anim):
+            center = self.rect.center
+            self.image = self.explosion_anim[self.frame]
+            self.rect = self.image.get_rect()
+            self.rect.center = center
+            surface.blit(self.image, self.rect)
+            self.frame += 1
+            return
+        self.kill()
+
 # ----------- BATTLE ENVIRONMENT -----------
 class raw_env(AECEnv):
 
@@ -347,6 +376,7 @@ class raw_env(AECEnv):
         self.total_games = 0
         self.ties = 0
         self.bullets = []
+        self.explosions = []
         self.speed = 200 # mph
         self.bullet_speed = 400 # mph
         self.total_time = 0 # in hours
@@ -481,6 +511,11 @@ class raw_env(AECEnv):
 
                     # Plane is dead
                     if not outcome.alive:
+                        print(agent_id, "died")
+                        self.explosions.append(Explosion(self.team[self.team_map[agent_id]]['planes'][agent_id].get_pos()))
+                        if agent_id in self.agents:
+                            self.agents.remove(agent_id)
+                        self.team[self.team_map[agent_id]]['planes'].pop(agent_id)
                         self.rewards[agent_id] += self.die_punishment
                         self.dones[agent_id] = True
 
@@ -566,6 +601,10 @@ class raw_env(AECEnv):
         # Draw bullets
         for bullet in self.bullets:
             bullet.draw(self.display)
+
+        # Draw explosions
+        for explosion in self.explosions:
+            explosion.draw(self.display)
                 
         # Draw bases
         self.team['red']['base'].draw(self.display)
@@ -586,7 +625,6 @@ class raw_env(AECEnv):
             self.winner_screen()
             pygame.display.update()
             pygame.time.wait(1500)
-            self.close()
 
         pygame.display.update()
         self.clock.tick(self.fps)

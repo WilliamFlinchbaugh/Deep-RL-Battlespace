@@ -25,3 +25,4 @@ for i in range(episodes):
         observation, reward, done, info = env.last()
         action = env.action_space(agent).sample()
         env.step(action)
+    env.close()
