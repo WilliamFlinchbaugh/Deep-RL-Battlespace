@@ -12,13 +12,11 @@ from ray import tune
 import battle_v1
 from ray.tune.registry import register_env
 from ray.rllib.env.wrappers.pettingzoo_env import PettingZooEnv
-from supersuit.multiagent_wrappers.black_death import black_death_v3
 
-n_agents = 2
+n_agents = 3
 
 def env_creator(args):
     env = battle_v1.env(**args)
-    env = black_death_v3(env)
     return env
 
 register_env("BattleEnvironment", lambda config: PettingZooEnv(env_creator(config)))
