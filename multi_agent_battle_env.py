@@ -3,12 +3,11 @@ import pygame
 from pygame.locals import *
 import numpy as np
 import math
-import gym
 from gym import spaces
 import os
-from pettingzoo import AECEnv
-from pettingzoo.utils import agent_selector
+from pettingzoo import ParallelEnv
 from pettingzoo.utils import wrappers
+from pettingzoo.utils import parallel_to_aec
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 WHITE = (255, 255, 255)
@@ -20,13 +19,14 @@ DISP_HEIGHT = 800
 
 def env(**kwargs):
     env = raw_env(**kwargs)
-    # This wrapper is only for environments which print results to the terminal
     env = wrappers.CaptureStdoutWrapper(env)
-    # this wrapper helps error handling for discrete action spaces
     env = wrappers.AssertOutOfBoundsWrapper(env)
-    # Provides a wide vareity of helpful user errors
-    # Strongly recommended
     env = wrappers.OrderEnforcingWrapper(env)
+    return env
+
+def raw_env(**kwargs):
+    env = parallel_env(**kwargs)
+    env = parallel_to_aec(env)
     return env
 
 # ---------- HELPER FUNCTIONS -----------
@@ -309,17 +309,14 @@ class Explosion(pygame.sprite.Sprite):
         self.kill()
 
 # ----------- BATTLE ENVIRONMENT -----------
-class raw_env(AECEnv):
+class parallel_env(ParallelEnv):
 
     metadata = {
         "render_modes": ["human"],
-        "name": "battle_env_v1",
-        "is_parallelizable": False,
-        "render_fps": 30,
+        "name": "battle_env_v1"
     }
 
-    def __init__(self, n_agents=1, show=False, hit_base_reward=10, hit_plane_reward=2, miss_punishment=0, lose_punishment=-3, die_punishment=-3, fps=20):
-        super(raw_env, self).__init__()
+    def __init__(self, n_agents=1, show=False, hit_base_reward=10, hit_plane_reward=2, miss_punishment=0, lose_punishment=-3, die_punishment=-3, fps=20, **kwargs):
         self.n_agents = n_agents
 
         base_hp = 4 * self.n_agents
@@ -346,7 +343,6 @@ class raw_env(AECEnv):
 
         self.possible_agents = self.agents[:]
         self.agent_name_mapping = dict(zip(self.agents, list(range(self.n_agents))))
-        self._agent_selector = agent_selector(self.agents)
 
         obs = {} # Observation per agent, consists of dist + angle of each enemy, and base
 
@@ -438,98 +434,95 @@ class raw_env(AECEnv):
             pygame.time.wait(1000)
 
         self.agents = self.possible_agents[:]
-        self._agent_selector.reinit(self.agents)
-        self.agent_selection = self._agent_selector.next()
-
-        self.rewards = {agent: 0 for agent in self.agents}
-        self._cumulative_rewards = {agent: 0 for agent in self.agents}
         self.dones = {agent: False for agent in self.agents}
-        self.infos = {agent: {} for agent in self.agents}
+        self.env_done = False
 
-    def step(self, action):
+        observations = {agent: self.observe(agent) for agent in self.agents}
+        return observations
+
+    def step(self, actions):
+        # If passing no actions
+        if not actions:
+            self.agents = []
+            return {}, {}, {}, {}
+
         # Set rewards and cumulative rewards to 0
-        self.rewards = {agent: 0 for agent in self.agents}
-        agent_id = self.agent_selection
-        self._cumulative_rewards[agent_id] = 0
+        rewards = {agent: 0 for agent in self.agents}
 
-        # Checks if agent is already done
-        if self.dones[self.agent_selection]:
-            self.dones[agent_id] = True
-            return self._was_done_step(action)
+        for agent_id in self.agents:
+            action = actions[agent_id]
+            self.process_action(action, agent_id)
 
-        # Take action
-        self.process_action(action, agent_id)
+        # Move every bullet and check for hits
+        for bullet in self.bullets[:]:
+            # Move bullet and gather outcome
+            outcome = bullet.update(self.width, self.height, self.time_step)
 
-        # If it's the last agent, we need to move bullets and check for wins/ties
-        all_agents_updated = self._agent_selector.is_last()
-        if all_agents_updated:
-            # Move every bullet and check for hits
-            for bullet in self.bullets[:]:
-                # Move bullet and gather outcome
-                outcome = bullet.update(self.width, self.height, self.time_step)
+            # Kill bullet if miss
+            if outcome == 'miss':
+                rewards[agent_id] += self.miss_punishment
+                self.bullets.remove(bullet)
 
-                # Kill bullet if miss
-                if outcome == 'miss':
-                    self.rewards[agent_id] += self.miss_punishment
+            # Kill bullet and provide reward if hits base
+            elif isinstance(outcome, Base):
+                outcome.hit()
+                rewards[agent_id] += self.hit_base_reward
+
+                # Won the game (base is dead)
+                if not outcome.alive:
+                    self.winner = bullet.fcolor
+                    self.team[bullet.fcolor]['wins'] += 1
+
+                    # Give lose_punishment to enemy team planes
+                    for key, plane in self.team_map:
+                        if plane == outcome.team:
+                            rewards[key] += self.lose_punishment
+
+                    self.total_games += 1
+                    self.dones = {agent: True for agent in self.agents}
+                    self.env_done = True
+
+                    if self.show:
+                        self.render()
+                        print(f"{self.winner} wins")
+
+                # Didn't win, just hit the base
+                else:
                     self.bullets.remove(bullet)
+            
+            # Kill bullet and provide reward if hits plane
+            elif isinstance(outcome, Plane):
+                outcome.hit()
+                rewards[agent_id] += self.hit_plane_reward
+                self.bullets.remove(bullet)
 
-                # Kill bullet and provide reward if hits base
-                elif isinstance(outcome, Base):
-                    outcome.hit()
-                    self.rewards[agent_id] += self.hit_base_reward
+                # Plane is dead
+                if not outcome.alive:
+                    self.explosions.append(Explosion(outcome.get_pos()))
+                    self.agents.remove(outcome.id)
+                    self.team[outcome.team]['planes'].pop(outcome.id)
+                    rewards[outcome.id] += self.die_punishment
+                    self.dones[outcome.id] = True
 
-                    # Won the game (base is dead)
-                    if not outcome.alive:
-                        self.winner = bullet.fcolor
-                        self.team[bullet.fcolor]['wins'] += 1
+        # Increase time and check for a tie
+        self.total_time += self.time_step
+        if self.total_time >= self.max_time:
+            self.dones = {agent: True for agent in self.agents}
+            self.winner = 'tie'
+            self.total_games += 1
+            self.ties += 1
 
-                        # Give lose_punishment to enemy team planes
-                        for key, plane in self.team_map:
-                            if plane == outcome.team:
-                                self.rewards[key] += self.lose_punishment
-
-                        self.total_games += 1
-                        self.dones = {agent: True for agent in self.agents}
-
-                        if self.show:
-                            self.render()
-                            print(f"{self.winner} wins")
-
-                    # Didn't win, just hit the base
-                    else:
-                        self.bullets.remove(bullet)
-                
-                # Kill bullet and provide reward if hits plane
-                elif isinstance(outcome, Plane):
-                    outcome.hit()
-                    self.rewards[agent_id] += self.hit_plane_reward
-                    self.bullets.remove(bullet)
-
-                    # Plane is dead
-                    if not outcome.alive:
-                        self.explosions.append(Explosion(outcome.get_pos()))
-                        self.agents.remove(outcome.id)
-                        self.team[outcome.team]['planes'].pop(outcome.id)
-                        self.rewards[outcome.id] += self.die_punishment
-                        self.dones[outcome.id] = True
-
-            # Increase time and check for a tie
-            self.total_time += self.time_step
-            if self.total_time >= self.max_time:
-                self.dones = {agent: True for agent in self.agents}
-                self.winner = 'tie'
-                self.total_games += 1
-                self.ties += 1
-
-            # Render the environment
-            if self.show:
-                self.render()
+        # Render the environment
+        if self.show:
+            self.render()
         
-        # Select next agent
-        self.agent_selection = self._agent_selector.next()
+        observations = {agent: self.observe(agent) for agent in self.agents}
+        infos = {agent: {} for agent in self.agents}
 
-        # Adds rewards
-        self._accumulate_rewards()
+        if self.env_done:
+            self.agents = []
+            
+        return observations, rewards, self.dones, infos
     
     def process_action(self, action, agent_id):
         agent = self.team['red']['planes'][agent_id] if agent_id in self.team['red']['planes'] else self.team['blue']['planes'][agent_id]
