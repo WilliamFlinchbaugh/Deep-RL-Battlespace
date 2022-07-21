@@ -15,9 +15,8 @@ cf = {
 
 env = battle_v1.parallel_env(**cf)
 env = ss.black_death_v3(env)
-env = ss.pad_observations_v0(env)
 env = ss.pettingzoo_env_to_vec_env_v1(env)
-env = ss.concat_vec_envs_v1(env, 1, num_cpus=1)
+env = ss.concat_vec_envs_v1(env, 1, num_cpus=1, base_class="stable_baselines3")
 model = PPO(
     'MlpPolicy',
     env,

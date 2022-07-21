@@ -360,7 +360,6 @@ class parallel_env(ParallelEnv):
 
          # Forward, Shoot, Turn right, Turn left
         self.observation_spaces = {agent: obs_space for agent in self.possible_agents}
-        print(self.observation_spaces)
         self.action_spaces = {agent: spaces.Discrete(4) for agent in self.possible_agents}
         
         # ---------- Initialize values ----------
