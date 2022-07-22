@@ -21,9 +21,9 @@ model = PPO('MlpPolicy', env, verbose=1)
 model.learn(total_timesteps=300000)
 model.save("policy")
 
-# env = battle_v1.parallel_env(**cf)
-# env = ss.black_death_v3(env)
-# model = PPO.load("policy")
+env = battle_v1.parallel_env(**cf)
+env = ss.black_death_v3(env)
+model = PPO.load("policy")
 
 # observations = env.reset()
 # max_cycles = 5000
