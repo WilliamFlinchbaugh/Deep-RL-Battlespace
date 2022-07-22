@@ -8,7 +8,7 @@ cf = {
     'hit_base_reward': 10, # Reward value for hitting enemy base
     'hit_plane_reward': 2, # Reward value for hitting enemy plane
     'miss_punishment': 0, # Punishment value for missing a shot
-    'die_punishment': -5, # Punishment value for a plane dying
+    'die_punishment': -1, # Punishment value for a plane dying
     'fps': 15 # Framerate that the visuals run at
 }
 

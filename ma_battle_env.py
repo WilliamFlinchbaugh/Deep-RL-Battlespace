@@ -541,7 +541,7 @@ class parallel_env(ParallelEnv, EzPickle):
         if self.env_done:
             self.agents = []
             self.dones = {agent: True for agent in self.possible_agents}
-            
+        
         return observations, rewards, self.dones, infos
     
     def process_action(self, action, agent_id):
