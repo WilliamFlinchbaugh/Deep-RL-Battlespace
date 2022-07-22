@@ -8,8 +8,8 @@ cf = {
     'hit_base_reward': 10, # Reward value for hitting enemy base
     'hit_plane_reward': 2, # Reward value for hitting enemy plane
     'miss_punishment': 0, # Punishment value for missing a shot
-    'lose_punishment': -3, # Punishment value for losing the game
-    'die_punishment': -3, # Punishment value for a plane dying
+    'lose_punishment': -10, # Punishment value for losing the game
+    'die_punishment': -1, # Punishment value for a plane dying
     'fps': 60 # Framerate that the visuals run at
 }
 
@@ -20,7 +20,7 @@ env = ss.concat_vec_envs_v1(env, 1, num_cpus=1, base_class="stable_baselines3")
 model = PPO(
     'MlpPolicy',
     env,
-    verbose=3,
+    verbose=1,
 )
 model.learn(total_timesteps=2000000)
 model.save("policy")
