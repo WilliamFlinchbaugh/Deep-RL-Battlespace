@@ -1,3 +1,4 @@
+from pprint import pprint
 import random
 import pygame
 from pygame.locals import *
@@ -323,13 +324,13 @@ class parallel_env(ParallelEnv, EzPickle):
 
         pygame.init()
 
-        base_hp = 4 * self.n_agents
-        plane_hp = 2
+        self.base_hp = 4 * self.n_agents
+        self.plane_hp = 2
         self.team = {}
         self.team['red'] = {}
         self.team['blue'] = {}
-        self.team['red']['base'] = Base('red', base_hp)
-        self.team['blue']['base'] = Base('blue', base_hp)
+        self.team['red']['base'] = Base('red', self.base_hp)
+        self.team['blue']['base'] = Base('blue', self.base_hp)
         self.team['red']['planes'] = {}
         self.team['blue']['planes'] = {}
         self.team['red']['wins'] = 0
@@ -343,10 +344,10 @@ class parallel_env(ParallelEnv, EzPickle):
         self.team_map = {}
         for x in self.possible_red:
             self.team_map[x] = 'red'
-            self.team['red']['planes'][x] = Plane('red', plane_hp, x)
+            self.team['red']['planes'][x] = Plane('red', self.plane_hp, x)
         for x in self.possible_blue:
             self.team_map[x] = 'blue'
-            self.team['blue']['planes'][x] = Plane('blue', plane_hp, x)
+            self.team['blue']['planes'][x] = Plane('blue', self.plane_hp, x)
 
         self.agent_name_mapping = dict(zip(self.agents, list(range(self.n_agents))))
 
@@ -396,55 +397,38 @@ class parallel_env(ParallelEnv, EzPickle):
         return self.action_spaces[agent]
     
     def observe(self, agent):
-        dct = {}
 
         agent_team = self.team_map[agent]
+        oteam = self.possible_blue[:] if agent_team == 'red' else self.possible_red[:]
 
-        if agent not in self.agents: # if this agent is dead
-            self.team[agent_team]['planes'].pop(agent) # make sure it is out of the team
+        # Default values (only altered if enemies are alive)
+        dct = {}
+        dct['base_dist'] = -1
+        dct['base_angle'] = -1
+        for x in oteam:
+            dct[f'{x}_alive'] = -1
+            dct[f'{x}_dist'] = -1
+            dct[f'{x}_angle'] = -1
 
-        if agent not in self.team[agent_team]['planes']: # if this agent is dead
-            self.agents.remove(agent) # make sure it is out of self.agents
-
-        if agent not in self.agents: # return empty obs if dead
-            dct['base_dist'] = -1
-            dct['base_angle'] = -1
-            for x in range(self.n_agents):
-                dct[f'{x}_alive'] = -1
-                dct[f'{x}_dist'] = -1
-                dct[f'{x}_angle'] = -1
-            return dct
+        if not (agent in self.agents and agent in self.team[agent_team]['planes']):
+            return np.array([x for x in dct.values()], dtype=np.float32)
 
         agent_plane = self.team[agent_team]['planes'][agent]
         ocolor = 'blue' if agent_team == 'red' else 'red'
-        oteam = self.possible_blue[:] if agent_team == 'red' else self.possible_red[:]
         agent_pos = agent_plane.get_pos()
         agent_dir = agent_plane.get_direction()
         obase = self.team[ocolor]['base']
         obase_pos = obase.get_pos()
 
-        dct = {}
-
         dct['base_dist'] = dist(agent_pos, obase_pos) / (math.sqrt(math.pow(self.width, 2) + math.pow(self.height, 2))) * 2 - 1
         dct['base_angle'] = rel_angle(agent_pos, agent_dir, obase_pos) / 360
-        for x in oteam:
-            if agent not in self.agents:
-                self.team[agent_team]['planes'].pop(agent) # make sure it is out of the team if dead
-            if agent not in self.team[agent_team]['planes']: 
-                self.agents.remove(agent) # make sure it is out of self.agents if dead
 
-            if x not in self.agents or x not in self.team[agent_team]['planes']: # agent is dead
-                dct[f'{x}_alive'] = -1
-                dct[f'{x}_dist'] = -1
-                dct[f'{x}_angle'] = -1
+        for key, plane in self.team[ocolor]['planes'].items():
+            plane_pos = plane.get_pos()
+            dct[f'{key}_alive'] = 1
+            dct[f'{key}_dist'] = dist(agent_pos, plane_pos) / (math.sqrt(math.pow(self.width, 2) + math.pow(self.height, 2))) * 2 - 1
+            dct[f'{key}_angle'] = rel_angle(agent_pos, agent_dir, plane_pos) / 360
 
-            else: # the agent is actually alive
-                plane = self.team[ocolor]['planes'][x]
-                plane_pos = plane.get_pos()
-                dct[f'{x}_alive'] = 1
-                dct[f'{x}_dist'] = dist(agent_pos, plane_pos) / (math.sqrt(math.pow(self.width, 2) + math.pow(self.height, 2))) * 2 - 1
-                dct[f'{x}_angle'] = rel_angle(agent_pos, agent_dir, plane_pos) / 360
-        print(len(dct))
         return np.array([x for x in dct.values()], dtype=np.float32)
 
     def reset(self, seed=None, return_info=False, options=None):
@@ -453,10 +437,13 @@ class parallel_env(ParallelEnv, EzPickle):
         self.team['red']['base'].reset()
         self.team['blue']['base'].reset()
 
-        for plane in self.team['red']['planes'].values():
-            plane.reset()
-        for plane in self.team['blue']['planes'].values():
-            plane.reset()
+        self.team['red']['planes'].clear()
+        self.team['blue']['planes'].clear()
+
+        for x in self.possible_red:
+            self.team['red']['planes'][x] = Plane('red', self.plane_hp, x)
+        for x in self.possible_blue:
+            self.team['blue']['planes'][x] = Plane('blue', self.plane_hp, x)
 
         self.display = pygame.Surface((DISP_WIDTH, DISP_HEIGHT))
         self.total_time = 0
@@ -465,10 +452,10 @@ class parallel_env(ParallelEnv, EzPickle):
         self.rendering = False
 
         self.agents = self.possible_agents[:]
-        self.dones = {agent: False for agent in self.agents}
+        self.dones = {agent: False for agent in self.possible_agents}
         self.env_done = False
 
-        observations = {agent: self.observe(agent) for agent in self.agents}
+        observations = {agent: self.observe(agent) for agent in self.possible_agents}
         return observations
 
     def step(self, actions):
@@ -479,6 +466,22 @@ class parallel_env(ParallelEnv, EzPickle):
 
         # Set rewards and cumulative rewards to 0
         rewards = {agent: 0 for agent in self.agents}
+
+        # Increase time and check for a tie
+        self.total_time += self.time_step
+        if self.total_time >= self.max_time:
+            self.dones = {agent: True for agent in self.possible_agents}
+            self.winner = 'tie'
+            self.total_games += 1
+            self.ties += 1
+            if self.show:
+                print("tie")
+            observations = {agent: self.observe(agent) for agent in self.possible_agents}
+            infos = {agent: {} for agent in self.possible_agents}
+            self.agents = []
+            self.env_done = True
+            self.dones = {agent: True for agent in self.possible_agents}
+            return observations, rewards, self.dones, infos
 
         for agent_id in self.agents:
             action = actions[agent_id]
@@ -510,7 +513,7 @@ class parallel_env(ParallelEnv, EzPickle):
                             rewards[key] += self.lose_punishment
 
                     self.total_games += 1
-                    self.dones = {agent: True for agent in self.agents}
+                    self.dones = {agent: True for agent in self.possible_agents}
                     self.env_done = True
 
                     if self.show:
@@ -535,29 +538,24 @@ class parallel_env(ParallelEnv, EzPickle):
                     rewards[outcome.id] += self.die_punishment
                     self.dones[outcome.id] = True
 
-        # Increase time and check for a tie
-        self.total_time += self.time_step
-        if self.total_time >= self.max_time:
-            self.dones = {agent: True for agent in self.agents}
-            self.winner = 'tie'
-            self.total_games += 1
-            self.ties += 1
-
         # Render the environment
         if self.show:
             self.render()
         
-        observations = {agent: self.observe(agent) for agent in self.agents}
-        infos = {agent: {} for agent in self.agents}
+        observations = {agent: self.observe(agent) for agent in self.possible_agents}
+        infos = {agent: {} for agent in self.possible_agents}
 
         if self.env_done:
             self.agents = []
+            self.dones = {agent: True for agent in self.possible_agents}
             
         return observations, rewards, self.dones, infos
     
     def process_action(self, action, agent_id):
-        agent = self.team['red']['planes'][agent_id] if agent_id in self.team['red']['planes'] else self.team['blue']['planes'][agent_id]
+        if agent_id not in self.team['red']['planes'] and agent_id not in self.team['blue']['planes']:
+            return
         team = 'red' if agent_id in self.team['red']['planes'] else 'blue'
+        agent = self.team[team]['planes'][agent_id]
         oteam = 'blue' if team == 'red' else 'red'
         agent_pos = agent.get_pos()
         agent_dir = agent.get_direction()
@@ -598,7 +596,7 @@ class parallel_env(ParallelEnv, EzPickle):
         return "Wins by red: {}\nWins by blue: {}\nTied games: {}\nWin rate: {}".format(self.team['red']['wins'], self.team['blue']['wins'], self.ties, self.team['red']['wins']/self.total_games)
 
     def close(self):
-        pygame.quit()
+        pygame.display.quit()
 
     def render(self, mode="human"):
         # Just to ensure it won't render if self.show == False
