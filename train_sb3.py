@@ -30,5 +30,5 @@ for _ in range(5):
     actions = {}
     while not env.env.env_done:
         for agent in env.agents:
-            actions[agent] = model.predict(observations[agent])
+            actions[agent], _state = model.predict(observations[agent])
         observations, rewards, dones, infos = env.step(actions)
