@@ -4,7 +4,7 @@ import battle_v1
 
 cf = {
     'n_agents': 3, # Number of planes on each team
-    'show': True, # Show visuals
+    'show': False, # Show visuals
     'hit_base_reward': 10, # Reward value for hitting enemy base
     'hit_plane_reward': 2, # Reward value for hitting enemy plane
     'miss_punishment': 0, # Punishment value for missing a shot
@@ -21,6 +21,8 @@ model = PPO('MlpPolicy', env, verbose=1)
 model.learn(total_timesteps=500000)
 model.save("policy")
 
+# Turn on visuals and show 5 games
+cf['show'] = True
 env = battle_v1.parallel_env(**cf)
 env = ss.black_death_v3(env)
 model = PPO.load("policy")
