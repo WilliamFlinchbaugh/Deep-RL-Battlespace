@@ -24,14 +24,13 @@ register_env("BattleEnvironment", lambda config: PettingZooEnv(env_creator(confi
 config = {
     "env": "BattleEnvironment",
     "env_config": {
-        'n_agents': n_agents, # Number of planes on each team
-        'show': True, # Show visuals
+        'n_agents': 3, # Number of planes on each team
+        'show': False, # Show visuals
         'hit_base_reward': 10, # Reward value for hitting enemy base
         'hit_plane_reward': 2, # Reward value for hitting enemy plane
         'miss_punishment': 0, # Punishment value for missing a shot
-        'lose_punishment': -3, # Punishment value for losing the game
-        'die_punishment': -3, # Punishment value for a plane dying
-        'fps': 60 # Framerate that the visuals run at
+        'die_punishment': -5, # Punishment value for a plane dying
+        'fps': 15 # Framerate that the visuals run at
     },
     # Use GPUs iff `RLLIB_NUM_GPUS` env var set to > 0.
     "num_gpus": int(os.environ.get("RLLIB_NUM_GPUS", "0")),

@@ -318,8 +318,8 @@ class parallel_env(ParallelEnv, EzPickle):
         "name": "battle_env_v1"
     }
 
-    def __init__(self, n_agents=1, show=False, hit_base_reward=10, hit_plane_reward=2, miss_punishment=0, lose_punishment=-3, die_punishment=-3, fps=20, **kwargs):
-        EzPickle.__init__(self, n_agents, show, hit_base_reward, hit_plane_reward, miss_punishment, lose_punishment, die_punishment, fps, **kwargs)
+    def __init__(self, n_agents=1, show=False, hit_base_reward=10, hit_plane_reward=2, miss_punishment=0, die_punishment=-3, fps=20, **kwargs):
+        EzPickle.__init__(self, n_agents, show, hit_base_reward, hit_plane_reward, miss_punishment, die_punishment, fps, **kwargs)
         self.n_agents = n_agents # n agents per team
 
         pygame.init()
@@ -386,7 +386,6 @@ class parallel_env(ParallelEnv, EzPickle):
         self.hit_base_reward = hit_base_reward
         self.hit_plane_reward = hit_plane_reward
         self.miss_punishment = miss_punishment
-        self.lose_punishment = lose_punishment
         self.die_punishment = die_punishment
         self.fps = fps
 
@@ -506,12 +505,6 @@ class parallel_env(ParallelEnv, EzPickle):
                 if not outcome.alive:
                     self.winner = bullet.fcolor
                     self.team[bullet.fcolor]['wins'] += 1
-
-                    # Give lose_punishment to enemy team planes
-                    for key, plane in self.team_map:
-                        if plane == outcome.team:
-                            rewards[key] += self.lose_punishment
-
                     self.total_games += 1
                     self.dones = {agent: True for agent in self.possible_agents}
                     self.env_done = True
