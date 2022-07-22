@@ -484,7 +484,7 @@ class parallel_env(ParallelEnv, EzPickle):
 
         for agent_id in self.agents:
             action = actions[agent_id]
-            self.process_action(action, agent_id)
+            self.process_action(action[0], agent_id)
 
         # Move every bullet and check for hits
         for bullet in self.bullets[:]:

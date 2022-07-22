@@ -18,15 +18,17 @@ env = ss.pettingzoo_env_to_vec_env_v1(env)
 env = ss.concat_vec_envs_v1(env, 1, num_cpus=1, base_class="stable_baselines3")
 
 model = PPO('MlpPolicy', env, verbose=1)
-model.learn(total_timesteps=300000)
+model.learn(total_timesteps=500000)
 model.save("policy")
 
 env = battle_v1.parallel_env(**cf)
 env = ss.black_death_v3(env)
 model = PPO.load("policy")
 
-# observations = env.reset()
-# max_cycles = 5000
-# for step in range(max_cycles):
-#     actions = {agent: model.predict(observations[agent]) for agent in env.agents}
-#     observations, rewards, dones, infos = env.step(actions)
+for _ in range(5):
+    observations = env.reset()
+    actions = {}
+    while not env.env.env_done:
+        for agent in env.agents:
+            actions[agent] = model.predict(observations[agent])
+        observations, rewards, dones, infos = env.step(actions)
