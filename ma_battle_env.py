@@ -319,6 +319,8 @@ class parallel_env(ParallelEnv):
     def __init__(self, n_agents=1, show=False, hit_base_reward=10, hit_plane_reward=2, miss_punishment=0, lose_punishment=-3, die_punishment=-3, fps=20, **kwargs):
         self.n_agents = n_agents
 
+        pygame.init()
+
         base_hp = 4 * self.n_agents
         plane_hp = 2
         self.team = {}
@@ -422,16 +424,11 @@ class parallel_env(ParallelEnv):
         for plane in self.team['blue']['planes'].values():
             plane.reset()
 
+        self.display = pygame.Surface((DISP_WIDTH, DISP_HEIGHT))
         self.total_time = 0
         self.bullets = []
-
-        if self.show:
-            pygame.init()
-            pygame.font.init()
-            self.clock = pygame.time.Clock()
-            self.display = pygame.display.set_mode((DISP_WIDTH, DISP_HEIGHT))
-            pygame.display.set_caption("Battlespace Simulator")
-            pygame.time.wait(1000)
+            
+        self.rendering = False
 
         self.agents = self.possible_agents[:]
         self.dones = {agent: False for agent in self.agents}
@@ -572,6 +569,15 @@ class parallel_env(ParallelEnv):
     def render(self, mode="human"):
         # Just to ensure it won't render if self.show == False
         if not self.show: return
+
+        if not self.rendering:
+            self.rendering = True
+            pygame.display.init()
+            pygame.font.init()
+            self.display = pygame.display.set_mode((DISP_WIDTH, DISP_HEIGHT))
+            pygame.display.set_caption("Battlespace Simulator")
+            self.clock = pygame.time.Clock()
+            pygame.time.wait(1000)
             
         # Check if we should quit
         for event in pygame.event.get():
