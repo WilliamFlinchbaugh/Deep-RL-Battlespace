@@ -4,6 +4,7 @@ from pygame.locals import *
 import numpy as np
 import math
 from gym import spaces
+from gym.utils import EzPickle
 import os
 from pettingzoo import ParallelEnv
 from pettingzoo.utils import wrappers
@@ -309,7 +310,7 @@ class Explosion(pygame.sprite.Sprite):
         self.kill()
 
 # ----------- BATTLE ENVIRONMENT -----------
-class parallel_env(ParallelEnv):
+class parallel_env(ParallelEnv, EzPickle):
 
     metadata = {
         "render_modes": ["human"],
@@ -317,7 +318,8 @@ class parallel_env(ParallelEnv):
     }
 
     def __init__(self, n_agents=1, show=False, hit_base_reward=10, hit_plane_reward=2, miss_punishment=0, lose_punishment=-3, die_punishment=-3, fps=20, **kwargs):
-        self.n_agents = n_agents
+        EzPickle.__init__(self, n_agents, show, hit_base_reward, hit_plane_reward, miss_punishment, lose_punishment, die_punishment, fps, **kwargs)
+        self.n_agents = n_agents # n agents per team
 
         pygame.init()
 
@@ -333,17 +335,19 @@ class parallel_env(ParallelEnv):
         self.team['red']['wins'] = 0
         self.team['blue']['wins'] = 0
 
-        self.agents = [f"plane_{r}" for r in range(self.n_agents * 2)]
-        self.team_map = {}
-        for i in range(len(self.agents)):
-            if i < self.n_agents:
-                self.team['red']['planes'][self.agents[i]] = Plane('red', plane_hp, self.agents[i])
-                self.team_map[f'plane_{i}'] = 'red'
-            else:
-                self.team['blue']['planes'][self.agents[i]] = Plane('blue', plane_hp, self.agents[i])
-                self.team_map[f'plane_{i}'] = 'blue'
+        self.possible_agents = [f"plane{r}" for r in range(self.n_agents * 2)]
+        self.possible_red = self.possible_agents[:self.n_agents]
+        self.possible_blue = self.possible_agents[self.n_agents:]
+        self.agents = self.possible_agents[:]
 
-        self.possible_agents = self.agents[:]
+        self.team_map = {}
+        for x in self.possible_red:
+            self.team_map[x] = 'red'
+            self.team['red']['planes'][x] = Plane('red', plane_hp, x)
+        for x in self.possible_blue:
+            self.team_map[x] = 'blue'
+            self.team['blue']['planes'][x] = Plane('blue', plane_hp, x)
+
         self.agent_name_mapping = dict(zip(self.agents, list(range(self.n_agents))))
 
         obs = {} # Observation per agent, consists of dist + angle of each enemy, and base
@@ -392,25 +396,55 @@ class parallel_env(ParallelEnv):
         return self.action_spaces[agent]
     
     def observe(self, agent):
+        dct = {}
+
         agent_team = self.team_map[agent]
+
+        if agent not in self.agents: # if this agent is dead
+            self.team[agent_team]['planes'].pop(agent) # make sure it is out of the team
+
+        if agent not in self.team[agent_team]['planes']: # if this agent is dead
+            self.agents.remove(agent) # make sure it is out of self.agents
+
+        if agent not in self.agents: # return empty obs if dead
+            dct['base_dist'] = -1
+            dct['base_angle'] = -1
+            for x in range(self.n_agents):
+                dct[f'{x}_alive'] = -1
+                dct[f'{x}_dist'] = -1
+                dct[f'{x}_angle'] = -1
+            return dct
+
         agent_plane = self.team[agent_team]['planes'][agent]
-        oteam = 'blue' if agent_team == 'red' else 'red'
+        ocolor = 'blue' if agent_team == 'red' else 'red'
+        oteam = self.possible_blue[:] if agent_team == 'red' else self.possible_red[:]
         agent_pos = agent_plane.get_pos()
         agent_dir = agent_plane.get_direction()
-        oplanes = self.team[oteam]['planes']
-        obase = self.team[oteam]['base']
+        obase = self.team[ocolor]['base']
         obase_pos = obase.get_pos()
 
         dct = {}
 
         dct['base_dist'] = dist(agent_pos, obase_pos) / (math.sqrt(math.pow(self.width, 2) + math.pow(self.height, 2))) * 2 - 1
         dct['base_angle'] = rel_angle(agent_pos, agent_dir, obase_pos) / 360
-        for key, plane in oplanes.items():
-            plane_pos = plane.get_pos()
-            dct[f'{key}_alive'] = 1 if plane.alive else 0
-            dct[f'{key}_dist'] = dist(agent_pos, plane_pos) / (math.sqrt(math.pow(self.width, 2) + math.pow(self.height, 2))) * 2 - 1
-            dct[f'{key}_angle'] = rel_angle(agent_pos, agent_dir, plane_pos) / 360
+        for x in oteam:
+            if agent not in self.agents:
+                self.team[agent_team]['planes'].pop(agent) # make sure it is out of the team if dead
+            if agent not in self.team[agent_team]['planes']: 
+                self.agents.remove(agent) # make sure it is out of self.agents if dead
 
+            if x not in self.agents or x not in self.team[agent_team]['planes']: # agent is dead
+                dct[f'{x}_alive'] = -1
+                dct[f'{x}_dist'] = -1
+                dct[f'{x}_angle'] = -1
+
+            else: # the agent is actually alive
+                plane = self.team[ocolor]['planes'][x]
+                plane_pos = plane.get_pos()
+                dct[f'{x}_alive'] = 1
+                dct[f'{x}_dist'] = dist(agent_pos, plane_pos) / (math.sqrt(math.pow(self.width, 2) + math.pow(self.height, 2))) * 2 - 1
+                dct[f'{x}_angle'] = rel_angle(agent_pos, agent_dir, plane_pos) / 360
+        print(len(dct))
         return np.array([x for x in dct.values()], dtype=np.float32)
 
     def reset(self, seed=None, return_info=False, options=None):

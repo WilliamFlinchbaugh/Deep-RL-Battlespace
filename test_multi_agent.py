@@ -21,6 +21,7 @@ for agent in env.agent_iter():
         env.step(None)
         continue
     observation, reward, done, info = env.last()
+    print(len(observation))
     action = env.action_space(agent).sample()
     env.step(action)
 env.close()
