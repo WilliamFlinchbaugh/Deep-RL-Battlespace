@@ -1,4 +1,3 @@
-from pprint import pprint
 import random
 import pygame
 from pygame.locals import *
