@@ -10,8 +10,9 @@ import os
 from pettingzoo import ParallelEnv
 from pettingzoo.utils import wrappers
 from pettingzoo.utils import parallel_to_aec
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
+os.environ['KMP_DUPLICATE_LIB_OK']='True' # Needed or else it sometimes causes issues on windows machines
 
+# Constants for pygame
 WHITE = (255, 255, 255)
 RED = (138, 24, 26)
 BLUE = (0, 93, 135)
@@ -20,6 +21,10 @@ DISP_WIDTH = 1200
 DISP_HEIGHT = 800
 
 def env(**kwargs):
+    """
+    Wraps the raw environment in useful PZ wrappers
+    Returns the wrapped environment
+    """    
     env = raw_env(**kwargs)
     env = wrappers.CaptureStdoutWrapper(env)
     env = wrappers.AssertOutOfBoundsWrapper(env)
@@ -27,12 +32,21 @@ def env(**kwargs):
     return env
 
 def raw_env(**kwargs):
+    """
+    Wraps the parallel environment in the parallel_to_aec wrapper
+    Returns the AEC environment
+    """    
     env = parallel_env(**kwargs)
     env = parallel_to_aec(env)
     return env
 
 # ---------- HELPER FUNCTIONS -----------
 def rel_angle(p0, a0, p1):
+    """
+    Calculates the relative angle of position1 based on the angle0 and position0
+    Returns the calculated value in degrees
+    ** Don't ask me how the math works I spent hours stealing code to get it to work **
+    """    
     dx = p0[0] - p1[0]
     dy = p0[1] - p1[1]
     rads = math.atan2(dy,dx)
@@ -44,10 +58,17 @@ def rel_angle(p0, a0, p1):
     return rel_angle
 
 def dist(p1,p0):
+    """
+    Returns the distance between two points
+    """    
     return math.sqrt((p1[0]-p0[0])**2 + (p1[1]-p0[1])**2)
 
 def blitRotate(image, pos, originPos, angle):
-
+    """
+    Takes in a pygame image, position, the position of the origin, and an angle
+    Rotates the image from the center and resizes the rect to fit the image
+    Returns the rotated image and rect
+    """    
     # offset from pivot to center
     image_rect = image.get_rect(topleft = (pos[0] - originPos[0], pos[1] - originPos[1]))
     offset_center_to_pivot = pygame.math.Vector2(pos) - image_rect.center
@@ -65,13 +86,28 @@ def blitRotate(image, pos, originPos, angle):
     return rotated_image, rotated_image_rect
 
 def calc_new_xy(old_xy, speed, time, angle):
+    """
+    Takes a point, speed, timestep, and angle to calculate the new position
+    Returns the new point
+    """    
     new_x = old_xy[0] + (speed*time*math.cos(-math.radians(angle)))
     new_y = old_xy[1] + (speed*time*math.sin(-math.radians(angle)))
     return (new_x, new_y)
 
 # ---------- PLANE CLASS ----------
-class Plane:
+class Plane(pygame.sprite.Sprite):
+    """
+    Pygame sprite of a plane
+    """    
     def __init__(self, team, hp, id):
+        """ Initializes the values and pygame image/rect
+
+        Args:
+            team (string): Represents the color of the team that the plane is on; 'red' or 'blue'
+            hp (int): # of healthpoints for the plane (# of shots that can be taken)
+            id (string): The id used in env.agents and env.possible_agents
+        """
+        pygame.sprite.Sprite.__init__(self)
         self.id = id
         self.team = team
         self.color = RED if self.team == 'red' else BLUE
@@ -89,6 +125,10 @@ class Plane:
         self.reset()
 
     def reset(self):
+        """
+        Sets to a random position on the left or right side depending on team
+        Resets all other values
+        """
         self.hp = self.max_hp
         self.alive = True
         if self.team == 'red':
@@ -114,6 +154,11 @@ class Plane:
             self.rect.bottom = DISP_HEIGHT
         
     def rotate(self, angle):
+        """Rotates the plane by adding to self.direction
+
+        Args:
+            angle (float/int): # of degrees that the plane should turn
+        """
         self.direction += angle
         while self.direction > 360:
             self.direction -= 360
@@ -131,9 +176,20 @@ class Plane:
             self.rect.bottom = DISP_HEIGHT
 
     def set_direction(self, direction):
+        """Sets self.direction
+
+        Args:
+            direction (float): # of degrees that represents the plane's direction
+        """
         self.direction = direction
 
     def forward(self, speed, time):
+        """Moves the plane forward based on the direction, speed, and timestep
+
+        Args:
+            speed (int): The speed that the plane moves at (in MPH)
+            time (float): Timestep for the plane (in hrs)
+        """
         oldpos = self.rect.center
         self.rect.center = calc_new_xy(oldpos, speed, time, self.direction)
 
@@ -148,6 +204,9 @@ class Plane:
             self.rect.bottom = DISP_HEIGHT
 
     def hit(self):
+        """
+        Process a shot on the plane by decrementing hp
+        """
         self.hp -= 1
         if self.hp <= 0:
             self.alive = False
@@ -183,8 +242,9 @@ class Plane:
         return self.direction
 
 # ---------- BASE CLASS ----------
-class Base:
+class Base(pygame.sprite.Sprite):
     def __init__(self, team, hp):
+        pygame.sprite.Sprite.__init__(self)
         self.team = team
         self.color = RED if self.team == 'red' else BLUE
         self.image = pygame.image.load(f"assets/{team}_base.png")
@@ -372,13 +432,13 @@ class parallel_env(ParallelEnv, EzPickle):
         # ---------- Initialize values ----------
         self.width = DISP_WIDTH
         self.height = DISP_HEIGHT
-        self.max_time = 8 + (self.n_agents * 3)
+        self.max_time = 5 + (self.n_agents * 2)
         self.total_games = 0
         self.ties = 0
         self.bullets = []
         self.explosions = []
-        self.speed = 200 # mph
-        self.bullet_speed = 400 # mph
+        self.speed = 225 # mph
+        self.bullet_speed = 450 # mph
         self.total_time = 0 # in hours
         self.time_step = 0.1 # hours per time step
         self.step_turn = 20 # degrees to turn per step
