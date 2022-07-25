@@ -1,15 +1,8 @@
 gym==0.25.0
 matplotlib==3.5.2
 numpy==1.23.1
-<<<<<<< HEAD
-optuna==2.10.1
 PettingZoo==1.19.0
 pygame==2.1.2
-ray==1.13.0
-=======
-PettingZoo==1.19.0
-pygame==2.1.2
->>>>>>> 96ab4ecc790b6bc08520a24b447b3fdcbd5b3f87
 setuptools==63.2.0
 stable_baselines3==1.6.0
 SuperSuit==3.5.0
