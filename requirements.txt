@@ -1,0 +1,8 @@
+gym==0.25.0
+matplotlib==3.5.2
+numpy==1.23.1
+PettingZoo==1.19.0
+pygame==2.1.2
+setuptools==63.2.0
+stable_baselines3==1.6.0
+SuperSuit==3.5.0
