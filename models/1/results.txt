@@ -1,0 +1,8 @@
+Timesteps: 100000000
+{'die_punishment': -1,
+ 'fps': 15,
+ 'hit_base_reward': 10,
+ 'hit_plane_reward': 2,
+ 'miss_punishment': 0,
+ 'n_agents': 2,
+ 'show': False}
