@@ -206,6 +206,9 @@ class Plane(pygame.sprite.Sprite):
     def hit(self):
         """
         Process a shot on the plane by decrementing hp
+
+        Returns:
+            hp (int): The HP after taking a hit
         """
         self.hp -= 1
         if self.hp <= 0:
@@ -213,6 +216,11 @@ class Plane(pygame.sprite.Sprite):
         return self.hp
 
     def draw(self, surface):
+        """Draws the plane to the display surface
+
+        Args:
+            surface (pygame.Surface): The display to draw the plane to
+        """
         image, rect = blitRotate(self.image, self.rect.center, (self.w/2, self.h/2), self.direction)
         surface.blit(image, rect)
         if self.hp > 0:
@@ -224,6 +232,9 @@ class Plane(pygame.sprite.Sprite):
             pygame.draw.rect(surface, self.color, rect, border_radius = 3)
 
     def update(self):
+        """
+        Makes sure that the plane stays on the screen
+        """
         # Keep player on the screen
         if self.rect.left < 0:
             self.rect.left = 0
@@ -235,15 +246,34 @@ class Plane(pygame.sprite.Sprite):
             self.rect.bottom = DISP_HEIGHT
 
     def get_pos(self):
+        """Gives the current position of the plane as a point (x, y)
+
+        Returns:
+            tuple (x, y): current x-y position (center)
+        """
         image, rect = blitRotate(self.image, self.rect.center, (self.w/2, self.h/2), self.direction)
         return (rect.centerx, rect.centery)
     
     def get_direction(self):
+        """Gives the current direction that the plane is facing
+
+        Returns:
+            float: Current direction in degrees
+        """
         return self.direction
 
 # ---------- BASE CLASS ----------
 class Base(pygame.sprite.Sprite):
+    """
+    Pygame sprite of a base
+    """
     def __init__(self, team, hp):
+        """Initiates values for the base
+
+        Args:
+            team (string): Represents the team of the base, 'red' or 'blue'
+            hp (int): The # of hitpoints that the base should have
+        """
         pygame.sprite.Sprite.__init__(self)
         self.team = team
         self.color = RED if self.team == 'red' else BLUE
@@ -260,6 +290,10 @@ class Base(pygame.sprite.Sprite):
         self.reset()
         
     def reset(self):
+        """
+        Spawns base in random location on left or right of screen based on team
+        Resets other values
+        """
         self.alive = True
         self.hp = self.max_hp
         if self.team == 'red':
@@ -272,12 +306,22 @@ class Base(pygame.sprite.Sprite):
             self.rect.center = (x, y)
 
     def hit(self):
+        """Decrements the base's health
+
+        Returns:
+            int: HP after taking hit
+        """
         self.hp -= 1
         if self.hp <= 0:
             self.alive = False
         return self.hp
 
     def draw(self, surface):
+        """Draws the base to the display surface
+
+        Args:
+            surface (pygame.Surface): Pygame surface to draw to
+        """
         surface.blit(self.image, self.rect)
         rect = pygame.Rect(0, 0, self.hp * 10, 10)
         if self.hp > 0:
@@ -288,11 +332,29 @@ class Base(pygame.sprite.Sprite):
             pygame.draw.rect(surface, self.color, rect, border_radius = 3)
             
     def get_pos(self):
+        """Gets position of the base
+
+        Returns:
+            tuple (x, y): Point of the base (center)
+        """
         return self.rect.center
 
 # ---------- BULLET CLASS ----------
 class Bullet(pygame.sprite.Sprite):
+    """
+    Pygame sprite of a bullet
+    """
     def __init__(self, x, y, angle, speed, fcolor, oteam):
+        """Initiates values
+
+        Args:
+            x (int): x coordinate to spawn bullet
+            y (int): y coordinate to spawn bullet
+            angle (float/int): Angle that the bullet is heading
+            speed (int): Speed that the bullet moves at
+            fcolor (string): String representing the team that the bullet was shot from, 'red' or 'blue
+            oteam (dict): dictionary of the enemy team containing ['base'] and ['planes']
+        """
         pygame.sprite.Sprite.__init__(self)
         self.off_screen = False
         self.image = pygame.Surface((6, 3), pygame.SRCALPHA)
@@ -310,6 +372,16 @@ class Bullet(pygame.sprite.Sprite):
 
     # Checks the status of the bullet (hit or miss or neither)
     def update(self, screen_width, screen_height, time):
+        """Moves the bullet and checks for collisions
+
+        Args:
+            screen_width (int): Width of the display
+            screen_height (int): Height of the display
+            time (float): Timestep to calculate the distance to move
+
+        Returns:
+            outcome (string or Plane or Base): 'none', 'miss', Base object, or Plane object based on what the bullet collides with
+        """
         oldpos = self.rect.center
         self.rect.center = calc_new_xy(oldpos, self.speed, time, self.direction)
         self.dist_travelled += self.speed * time
@@ -332,18 +404,42 @@ class Bullet(pygame.sprite.Sprite):
         return 'none'
 
     def draw(self, surface):
+        """Draws the bullet to the display surface
+
+        Args:
+            surface (pygame.Surface): Surface to draw bullet to
+        """
         image, rect = blitRotate(self.image, self.rect.center, (self.w/2, self.h/2), self.direction)
         surface.blit(image, rect)
         
     def get_pos(self):
+        """Gets position of the bullet
+
+        Returns:
+            tuple (x, y): Center of bullet rect
+        """
         return self.rect.center
     
     def get_direction(self):
+        """Gets direction of the bullet
+
+        Returns:
+            direction (float): Direction bullet is heading in
+        """
         return self.direction
 
 # ---------- EXPLOSION CLASS ----------
 class Explosion(pygame.sprite.Sprite):
+    """
+    Pygame sprite of an explosion
+    Animation of an explosion when a plane dies
+    """
     def __init__(self, center):
+        """Initializes values
+
+        Args:
+            center (tuple): (x, y) point at which to spawn the explosion animation
+        """
         pygame.sprite.Sprite.__init__(self)
 
         # Load in the animation photos
@@ -360,6 +456,12 @@ class Explosion(pygame.sprite.Sprite):
         self.rect.center = center
 
     def draw(self, surface):
+        """Draws the explosion to the display surface
+        Increments the frame to show the animation
+
+        Args:
+            surface (pygame.Surface): Surface to display animation to
+        """
         if not self.frame == len(self.explosion_anim):
             center = self.rect.center
             self.image = self.explosion_anim[self.frame]
@@ -372,6 +474,11 @@ class Explosion(pygame.sprite.Sprite):
 
 # ----------- BATTLE ENVIRONMENT -----------
 class parallel_env(ParallelEnv, EzPickle):
+    """PettingZoo Environment taking parallel actions
+
+    Args:
+        EzPickle: Needed to fix pickling issue when wrapping the environment
+    """
 
     metadata = {
         "render_modes": ["human"],
@@ -379,6 +486,17 @@ class parallel_env(ParallelEnv, EzPickle):
     }
 
     def __init__(self, n_agents=1, show=False, hit_base_reward=10, hit_plane_reward=2, miss_punishment=0, die_punishment=-3, fps=20, **kwargs):
+        """Initializes values, observation spaces, action spaces, etc.
+
+        Args:
+            n_agents (int, optional): The number of agents per team. Defaults to 1.
+            show (bool, optional): Whether or not to show the pygame visuals. Defaults to False.
+            hit_base_reward (int, optional): Reward value for hitting enemy base. Defaults to 10.
+            hit_plane_reward (int, optional): Reward value for hitting enemy plane. Defaults to 2.
+            miss_punishment (int, optional): Punishment value for missing a bullet. Defaults to 0.
+            die_punishment (int, optional): Punishment value for plane dying. Defaults to -3.
+            fps (int, optional): Framerate for pygame visualization to run at. Defaults to 20.
+        """
         EzPickle.__init__(self, n_agents, show, hit_base_reward, hit_plane_reward, miss_punishment, die_punishment, fps, **kwargs)
         self.n_agents = n_agents # n agents per team
 
@@ -386,6 +504,8 @@ class parallel_env(ParallelEnv, EzPickle):
 
         self.base_hp = 4 * self.n_agents
         self.plane_hp = 2
+
+        # Initializing the team dictionaries
         self.team = {}
         self.team['red'] = {}
         self.team['blue'] = {}
@@ -396,11 +516,13 @@ class parallel_env(ParallelEnv, EzPickle):
         self.team['red']['wins'] = 0
         self.team['blue']['wins'] = 0
 
+        # Possible_agents is every possible agent, agents is agents that are currently alive
         self.possible_agents = [f"plane{r}" for r in range(self.n_agents * 2)]
         self.possible_red = self.possible_agents[:self.n_agents]
         self.possible_blue = self.possible_agents[self.n_agents:]
         self.agents = self.possible_agents[:]
 
+        # Creates the planes and makes a map so that they are easier to find
         self.team_map = {}
         for x in self.possible_red:
             self.team_map[x] = 'red'
@@ -413,10 +535,20 @@ class parallel_env(ParallelEnv, EzPickle):
 
         obs = {} # Observation per agent, consists of dist + angle of each enemy, and base
 
+        """
+        Observation space contains the following:
+        - Distance to enemy base
+        - Angle to enemy base
+        - If each enemy plane is alive
+        - Distance to each enemy plane
+        - Angle to each enemy plane
+
+        The observations are normalized between [-1, 1]
+        """
         obs['base_dist'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
         obs['base_angle'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
         for i in range(n_agents):
-            obs[f'plane_{i}_alive'] = spaces.Box(-1, 1, dtype=np.int16, shape=(1,))
+            obs[f'plane_{i}_alive'] = spaces.Box(-1, 1, dtype=np.int16, shape=(1,)) 
             obs[f'plane_{i}_dist'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
             obs[f'plane_{i}_angle'] = spaces.Box(-1, 1, dtype=np.float32, shape=(1,))
 
@@ -424,10 +556,16 @@ class parallel_env(ParallelEnv, EzPickle):
         maxs = np.array([x.high[0] for x in obs.values()])
 
         obs_space = spaces.Box(mins, maxs, dtype=np.float32)
-
-         # Forward, Shoot, Turn right, Turn left
-        self.observation_spaces = {agent: obs_space for agent in self.possible_agents}
-        self.action_spaces = {agent: spaces.Discrete(4) for agent in self.possible_agents}
+        self.observation_spaces = {agent: obs_space for agent in self.possible_agents} # Dictionary containing an observation space for each agent
+        
+        """
+        Action space contains the following:
+        - 1: Forward
+        - 2: Shoot
+        - 3: Turn Left
+        - 4: Turn Right
+        """
+        self.action_spaces = {agent: spaces.Discrete(4) for agent in self.possible_agents} # Dictionary containing an action space for each agent
         
         # ---------- Initialize values ----------
         self.width = DISP_WIDTH
@@ -450,17 +588,34 @@ class parallel_env(ParallelEnv, EzPickle):
         self.fps = fps
 
     def observation_space(self, agent):
+        """Gets the observation space for a given agent
+
+        Args:
+            agent (string): Agent ID (as stored in self.possible_agents)
+        """
         return self.observation_spaces[agent]
 
     def action_space(self, agent):
+        """Gets the action space for a given agent
+
+        Args:
+            agent (string): Agent ID (as stored in self.possible_agents)
+        """
         return self.action_spaces[agent]
     
     def observe(self, agent):
+        """Returns an observation for a given agent
 
+        Args:
+            agent (string): Agent ID (as stored in self.possible_agents)
+
+        Returns:
+            observation (np.array): Contains the values of an observation for the agent
+        """
         agent_team = self.team_map[agent]
         oteam = self.possible_blue[:] if agent_team == 'red' else self.possible_red[:]
 
-        # Default values (only altered if enemies are alive)
+        # Sets default values that will be changed if the planes are alive
         dct = {}
         dct['base_dist'] = -1
         dct['base_angle'] = -1
@@ -469,9 +624,10 @@ class parallel_env(ParallelEnv, EzPickle):
             dct[f'{x}_dist'] = -1
             dct[f'{x}_angle'] = -1
 
-        if not (agent in self.agents and agent in self.team[agent_team]['planes']):
+        if not (agent in self.agents and agent in self.team[agent_team]['planes']): # If this plane (the one observing) is dead
             return np.array([x for x in dct.values()], dtype=np.float32)
 
+        # Gathers values for observing
         agent_plane = self.team[agent_team]['planes'][agent]
         ocolor = 'blue' if agent_team == 'red' else 'red'
         agent_pos = agent_plane.get_pos()
@@ -479,72 +635,93 @@ class parallel_env(ParallelEnv, EzPickle):
         obase = self.team[ocolor]['base']
         obase_pos = obase.get_pos()
 
+        # Values for enemy base
         dct['base_dist'] = dist(agent_pos, obase_pos) / (math.sqrt(math.pow(self.width, 2) + math.pow(self.height, 2))) * 2 - 1
         dct['base_angle'] = rel_angle(agent_pos, agent_dir, obase_pos) / 360
 
+        # Values for each enemy plane
         for key, plane in self.team[ocolor]['planes'].items():
             plane_pos = plane.get_pos()
             dct[f'{key}_alive'] = 1
             dct[f'{key}_dist'] = dist(agent_pos, plane_pos) / (math.sqrt(math.pow(self.width, 2) + math.pow(self.height, 2))) * 2 - 1
             dct[f'{key}_angle'] = rel_angle(agent_pos, agent_dir, plane_pos) / 360
 
-        return np.array([x for x in dct.values()], dtype=np.float32)
+        return np.array([x for x in dct.values()], dtype=np.float32) # Cast the dict to np.array 
 
     def reset(self, seed=None, return_info=False, options=None):
+        """Reset all of the values so that the game can be restarted
+
+        Returns:
+            observations (dict): Initial observations of each agent
+        """
+        # Reset the winner
         self.winner = 'none'
 
+        # Reset the bases
         self.team['red']['base'].reset()
         self.team['blue']['base'].reset()
 
+        # Delete all of the planes
         self.team['red']['planes'].clear()
         self.team['blue']['planes'].clear()
 
+        # Re-populate the planes in the team dicts
         for x in self.possible_red:
             self.team['red']['planes'][x] = Plane('red', self.plane_hp, x)
         for x in self.possible_blue:
             self.team['blue']['planes'][x] = Plane('blue', self.plane_hp, x)
 
-        self.display = pygame.Surface((DISP_WIDTH, DISP_HEIGHT))
-        self.total_time = 0
-        self.bullets = []
-            
-        self.rendering = False
+        self.display = pygame.Surface((DISP_WIDTH, DISP_HEIGHT)) # Reset the pygame display
+        self.total_time = 0 # Reset the time
+        self.bullets = [] # Clear all of the bullets
+        self.rendering = False # Not currently rendering (used to initiate display)
+        self.agents = self.possible_agents[:] # Resetting all agents alive
+        self.dones = {agent: False for agent in self.possible_agents} # No agents are currently done
+        self.env_done = False # Environment is not done
 
-        self.agents = self.possible_agents[:]
-        self.dones = {agent: False for agent in self.possible_agents}
-        self.env_done = False
-
-        observations = {agent: self.observe(agent) for agent in self.possible_agents}
+        observations = {agent: self.observe(agent) for agent in self.possible_agents} # Get observations for each agent
         return observations
 
     def step(self, actions):
+        """Takes steps for each agent
+
+        Args:
+            actions (dict): Dictionary containing the actions of each agent
+
+        Returns:
+            observations (dict): Dictionary containing the observation of each agent
+            rewards (dict): Dictionary containing the rewards of each agent
+            dones (dict): Dictionary indicating which agents are done and should be skipped over
+            infos (dict): Used for extra info (not utilized)
+        """
+
         # If passing no actions
         if not actions:
-            self.agents = []
-            return {}, {}, {}, {}
+            self.agents = [] # Kill all agents
+            return {}, {}, {}, {} # Return empty stuff
 
         # Set rewards and cumulative rewards to 0
         rewards = {agent: 0 for agent in self.agents}
 
         # Increase time and check for a tie
         self.total_time += self.time_step
-        if self.total_time >= self.max_time:
-            self.dones = {agent: True for agent in self.possible_agents}
+        if self.total_time >= self.max_time: # If over the max time
+            self.dones = {agent: True for agent in self.possible_agents} # Set all agents to done
             self.winner = 'tie'
-            self.total_games += 1
+            self.total_games += 1 
             self.ties += 1
             if self.show:
                 print("tie")
-            observations = {agent: self.observe(agent) for agent in self.possible_agents}
-            infos = {agent: {} for agent in self.possible_agents}
-            self.agents = []
-            self.env_done = True
+            observations = {agent: self.observe(agent) for agent in self.possible_agents} # Get observation for each agent
+            infos = {agent: {} for agent in self.possible_agents} # Empty info for each agent
+            self.agents = [] # Kill all agents
+            self.env_done = True # Set environment to done
             self.dones = {agent: True for agent in self.possible_agents}
             return observations, rewards, self.dones, infos
 
-        for agent_id in self.agents:
-            action = actions[agent_id]
-            self.process_action(action, agent_id)
+        for agent_id in self.agents: # Carry out actions for each agent that is alive
+            action = actions[agent_id] # Grab action for this agent 
+            self.process_action(action, agent_id) # Perform the action
 
         # Move every bullet and check for hits
         for bullet in self.bullets[:]:
@@ -553,13 +730,13 @@ class parallel_env(ParallelEnv, EzPickle):
 
             # Kill bullet if miss
             if outcome == 'miss':
-                rewards[agent_id] += self.miss_punishment
-                self.bullets.remove(bullet)
+                rewards[agent_id] += self.miss_punishment # Issue punishment for missing
+                self.bullets.remove(bullet) # Kill the bullet
 
             # Kill bullet and provide reward if hits base
             elif isinstance(outcome, Base):
-                outcome.hit()
-                rewards[agent_id] += self.hit_base_reward
+                outcome.hit() # Damage the base 
+                rewards[agent_id] += self.hit_base_reward # Issue the reward for hitting
 
                 # Won the game (base is dead)
                 if not outcome.alive:
@@ -575,21 +752,21 @@ class parallel_env(ParallelEnv, EzPickle):
 
                 # Didn't win, just hit the base
                 else:
-                    self.bullets.remove(bullet)
+                    self.bullets.remove(bullet) # Kill the bullet
             
             # Kill bullet and provide reward if hits plane
             elif isinstance(outcome, Plane):
-                outcome.hit()
-                rewards[agent_id] += self.hit_plane_reward
-                self.bullets.remove(bullet)
+                outcome.hit() # Damage the plane
+                rewards[agent_id] += self.hit_plane_reward # Issue reward for hitting plane
+                self.bullets.remove(bullet) # Kill the bullet
 
                 # Plane is dead
                 if not outcome.alive:
-                    self.explosions.append(Explosion(outcome.get_pos()))
-                    self.agents.remove(outcome.id)
-                    self.team[outcome.team]['planes'].pop(outcome.id)
-                    rewards[outcome.id] += self.die_punishment
-                    self.dones[outcome.id] = True
+                    self.explosions.append(Explosion(outcome.get_pos())) # Create an explosion
+                    self.agents.remove(outcome.id) # Remove the agent from self.agents
+                    self.team[outcome.team]['planes'].pop(outcome.id) # Remove the plane from its team
+                    rewards[outcome.id] += self.die_punishment # Issue punishment for dying
+                    self.dones[outcome.id] = True # Set that agent's done to True
 
         # Render the environment
         if self.show:
@@ -598,15 +775,23 @@ class parallel_env(ParallelEnv, EzPickle):
         observations = {agent: self.observe(agent) for agent in self.possible_agents}
         infos = {agent: {} for agent in self.possible_agents}
 
-        if self.env_done:
-            self.agents = []
-            self.dones = {agent: True for agent in self.possible_agents}
+        if self.env_done: # The game is over
+            self.agents = [] # Kill all agents 
+            self.dones = {agent: True for agent in self.possible_agents} # Set all agents to done
         
         return observations, rewards, self.dones, infos
     
     def process_action(self, action, agent_id):
-        if agent_id not in self.team['red']['planes'] and agent_id not in self.team['blue']['planes']:
+        """Processes an action for a single agent
+
+        Args:
+            action (int): The action that an agent is taking
+            agent_id (string): Agent ID as given in self.possible_agents
+        """
+        if agent_id not in self.team['red']['planes'] and agent_id not in self.team['blue']['planes']: # if the agent is dead
             return
+
+        # Get some info about the agent
         team = 'red' if agent_id in self.team['red']['planes'] else 'blue'
         agent = self.team[team]['planes'][agent_id]
         oteam = 'blue' if team == 'red' else 'red'
@@ -615,25 +800,28 @@ class parallel_env(ParallelEnv, EzPickle):
 
         # --------------- FORWARD ---------------
         if action == 0: 
-            agent.forward(self.speed, self.time_step)
+            agent.forward(self.speed, self.time_step) # Move the plane forward
 
          # --------------- SHOOT ---------------
         elif action == 1:
-            self.bullets.append(Bullet(agent_pos[0], agent_pos[1], agent_dir, self.bullet_speed, team, self.team[oteam]))
-            agent.forward(self.speed, self.time_step)
+            self.bullets.append(Bullet(agent_pos[0], agent_pos[1], agent_dir, self.bullet_speed, team, self.team[oteam])) # Shoot a bullet
+            agent.forward(self.speed, self.time_step) # Move the plane forward
         
         # --------------- TURN LEFT ---------------
         elif action == 2:
-            agent.rotate(self.step_turn)
-            agent.forward(self.speed, self.time_step)
+            agent.rotate(self.step_turn) # Rotate the plane
+            agent.forward(self.speed, self.time_step) # Move the plane forward
 
         # ---------------- TURN RIGHT ----------------
         elif action == 3:
-            agent.rotate(-self.step_turn)
-            agent.forward(self.speed, self.time_step)
+            agent.rotate(-self.step_turn) # Rotate the plane
+            agent.forward(self.speed, self.time_step) # Move the plane forward
 
     def winner_screen(self):
-        if self.show:
+        """
+        Display the winner of the game when the game is over
+        """
+        if self.show: # Makes sure that we are visualizing
             font = pygame.font.Font('freesansbold.ttf', 32)
             if self.winner != 'none' and self.winner != 'tie':
                 text = font.render(f"THE WINNER IS {self.winner.upper()}", True, BLACK)
@@ -646,16 +834,27 @@ class parallel_env(ParallelEnv, EzPickle):
             self.display.blit(text, textRect)
 
     def wins(self):
+        """Gives a nice output of the wins for each team and the winrate of the red team
+
+        Returns:
+            string: Formatted string of the # of wins, ties, and winrate
+        """
         return "Wins by red: {}\nWins by blue: {}\nTied games: {}\nWin rate: {}".format(self.team['red']['wins'], self.team['blue']['wins'], self.ties, self.team['red']['wins']/self.total_games)
 
     def close(self):
+        """
+        Closes the pygame display
+        """
         pygame.display.quit()
 
     def render(self, mode="human"):
+        """
+        Renders the pygame visuals
+        """
         # Just to ensure it won't render if self.show == False
         if not self.show: return
 
-        if not self.rendering:
+        if not self.rendering: # We need to initialize everything if not yet rendering
             self.rendering = True
             pygame.display.init()
             pygame.font.init()
@@ -667,9 +866,9 @@ class parallel_env(ParallelEnv, EzPickle):
         # Check if we should quit
         for event in pygame.event.get():
             if event.type == KEYDOWN:
-                if event.key == K_ESCAPE:
+                if event.key == K_ESCAPE: # If pressed escape
                     self.close()
-            elif event.type == QUIT:
+            elif event.type == QUIT: # If trying to close the window
                 self.close()
 
         # Fill background
@@ -703,5 +902,6 @@ class parallel_env(ParallelEnv, EzPickle):
             pygame.display.update()
             pygame.time.wait(1500)
 
+        # Update the display and tick the clock with the framerate
         pygame.display.update()
         self.clock.tick(self.fps)
