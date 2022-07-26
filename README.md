@@ -31,14 +31,14 @@ Custom multi-agent torch model to replace stable baselines
 Larger observation space (including friendly plane information)
 Assigning roles to each agent (defender, attacker, etc.)
  
-# Github:
-There’s 3 important branches: latest-one-agent, enemy-ai, and multi-agent-env
+# Branches:
+There’s 3 important branches: agent-vs-random, agent-vs-pretrained-model, and multi-agent
 
-latest-one-agent is just a single agent training against a random blue agent
+agent-vs-random is just a single agent training against a random action blue plane
 
-enemy-ai has the blue agent make decisions based off of a pre-trained model
+agent-vs-pretrained-model has the blue agent make decisions based off of a pre-trained model
 
-multi-agent-env uses PettingZoo instead of OpenAI Gym and trains multiple planes (it’s way more complex)
+multi-agent uses PettingZoo instead of OpenAI Gym and trains multiple planes (it’s way more complex)
  
 # Installation Guide:
 We’ve been using Anaconda in Python 3.9.12 to run the code
