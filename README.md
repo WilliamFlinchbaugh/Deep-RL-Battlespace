@@ -18,7 +18,7 @@ Essentially, CAE contacted UNT a while back about research with a deep reinforce
  
 # Where we are at:
 At the start of 2022, Rebecca and Mounika created a basic RL model with a relatively basic environment. The graphics were only still images from matplotlib.
-In Summer 2022, I essentially completely transformed everything. I adapted the old environment to an OpenAI Gym environment (the latest-one-agent and enemy-ai branches) that uses pygame. I trained the one agent using Stable-Baselines3 PPO and DQN. First we trained it against an agent using random choice (it had the choices forward, shoot, to enemy base, and to enemy plane). Then, I took that trained agent and placed it into the blue plane and trained the red plane against it.
+In Summer 2022, I essentially completely transformed everything. I adapted the old environment to an OpenAI Gym environment (agent-vs-random and agent-vs-pretrained-model) that uses pygame. I trained the one agent using Stable-Baselines3 PPO and DQN. First we trained it against an agent using random choice (it had the choices forward, shoot, to enemy base, and to enemy plane). Then, I took that trained agent and placed it into the blue plane and trained the red plane against it.
 
 However, we needed multi-agent reinforcement learning (MARL) to add more planes. So, I turned that Gym environment into a PettingZoo environment. There were issues training the agents using Stable-Baselines3 because it doesn’t really support MARL, but I got it sorta working. I’m training with PPO right now and it takes a long time to train because of the large observation space. The agents are kinda stupid though.
 
