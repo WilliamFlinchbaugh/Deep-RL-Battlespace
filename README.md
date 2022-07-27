@@ -91,3 +91,16 @@ https://towardsdatascience.com/multi-agent-deep-reinforcement-learning-in-15-lin
 The Stable-Baselines3 docs are pretty good for understanding how everything works:
 
 https://stable-baselines3.readthedocs.io/en/master/index.html
+
+This video outlines MADDPG implementation in Pytorch:
+
+https://www.youtube.com/watch?v=tZTQ6S9PfkE
+
+MADDPG uses a centralized critic, but decentralized actors which is good for our application
+
+It’s important to note that we cannot use centralized actors because there are two teams
+
+Here’s the paper that this video covers:
+
+https://arxiv.org/pdf/1706.02275.pdf
+
