@@ -563,8 +563,16 @@ class parallel_env(ParallelEnv, EzPickle):
         - 2: Shoot
         - 3: Turn Left
         - 4: Turn Right
+
+        MADDPG uses continuous actions, so we use force_discrete_action to configure that
+        The actions will be a np.array of values and the max value will be taken as the action
         """
-        self.action_spaces = {agent: spaces.Discrete(4) for agent in self.possible_agents} # Dictionary containing an action space for each agent
+        self.force_discrete_action = True # Set to True if using algo that uses continuous actions
+
+        if self.force_discrete_action:
+            self.action_spaces = {agent: spaces.Box(low=0.0, high=1.0, shape=(4,), dtype=np.float32) for agent in self.possible_agents} # Dictionary containing an action space for each agent
+        else:
+            self.action_spaces = {agent: spaces.Discrete(4) for agent in self.possible_agents} # Dictionary containing an action space for each agent
         
         # ---------- Initialize values ----------
         self.width = DISP_WIDTH
@@ -719,7 +727,12 @@ class parallel_env(ParallelEnv, EzPickle):
             return observations, rewards, self.dones, infos
 
         for agent_id in self.agents: # Carry out actions for each agent that is alive
-            action = actions[agent_id] # Grab action for this agent 
+            # Need to get the max value of np.array if force_discrete_action
+            if self.force_discrete_action:
+                action = np.argmax(action[agent_id]) # Get action from the max value in np.array
+            else:
+                action = actions[agent_id] # Grab action for this agent 
+
             self.process_action(action, agent_id) # Perform the action
 
         # Move every bullet and check for hits
