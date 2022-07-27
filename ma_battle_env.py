@@ -484,7 +484,7 @@ class parallel_env(ParallelEnv, EzPickle):
         "name": "battle_env_v1"
     }
 
-    def __init__(self, n_agents=1, show=False, hit_base_reward=10, hit_plane_reward=2, miss_punishment=0, die_punishment=-3, fps=20, **kwargs):
+    def __init__(self, n_agents=1, show=False, hit_base_reward=10, hit_plane_reward=2, miss_punishment=0, die_punishment=-3, fps=20, force_discrete_action=True, **kwargs):
         """Initializes values, observation spaces, action spaces, etc.
 
         Args:
@@ -567,7 +567,7 @@ class parallel_env(ParallelEnv, EzPickle):
         MADDPG uses continuous actions, so we use force_discrete_action to configure that
         The actions will be a np.array of values and the max value will be taken as the action
         """
-        self.force_discrete_action = True # Set to True if using algo that uses continuous actions
+        self.force_discrete_action = force_discrete_action # Set to True if using algo that uses continuous actions
 
         if self.force_discrete_action:
             self.action_spaces = {agent: spaces.Box(low=0.0, high=1.0, shape=(4,), dtype=np.float32) for agent in self.possible_agents} # Dictionary containing an action space for each agent
@@ -729,7 +729,7 @@ class parallel_env(ParallelEnv, EzPickle):
         for agent_id in self.agents: # Carry out actions for each agent that is alive
             # Need to get the max value of np.array if force_discrete_action
             if self.force_discrete_action:
-                action = np.argmax(action[agent_id]) # Get action from the max value in np.array
+                action = np.argmax(actions[agent_id]) # Get action from the max value in np.array
             else:
                 action = actions[agent_id] # Grab action for this agent 
 
