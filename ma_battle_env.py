@@ -708,7 +708,7 @@ class parallel_env(ParallelEnv, EzPickle):
             return {}, {}, {}, {} # Return empty stuff
 
         # Set rewards and cumulative rewards to 0
-        rewards = {agent: 0 for agent in self.agents}
+        rewards = {agent: 0 for agent in self.possible_agents}
 
         # Increase time and check for a tie
         self.total_time += self.time_step
