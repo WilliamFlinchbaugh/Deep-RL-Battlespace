@@ -149,7 +149,59 @@ class Agent:
 
         for name in actor_state_dict:
             actor_state_dict[name] = tau*actor_state_dict[name].clone() + (1-tau)*target_actor_state_dict[name].clone()
+        self.target_actor.load_state_dict(actor_state_dict)
                 
+        target_critic_params = self.target_critic.named_parameters()
+        critic_params = self.critic.named_parameters()
+
+        target_critic_state_dict = dict(target_critic_params)
+        critic_state_dict = dict(critic_params)
+
+        for name in critic_state_dict:
+            critic_state_dict[name] = tau*critic_state_dict[name].clone() + (1-tau)*target_critic_state_dict[name].clone()
+        self.target_critic.load_state_dict(critic_state_dict)
+
+    def choose_action(self, observation):
+        state = T.tensor([observation], dtype=T.float).to(self.actor.device)
+        actions = self.actor.forward(state)
+        noise = T.rand(self.n_actions).to(self.actor.device)
+        action = actions + noise
+
+        return action.detach().cpu().numpy()[0]
+
+    def save_models(self):
+        self.actor.save_checkpoint()
+        self.target_actor.save_checkpoint()
+        self.critic.save_checkpoint()
+        self.target_critic.save_checkpoint()
+
+    def load_models(self):
+        self.actor.load_checkpoint()
+        self.target_actor.load_checkpoint()
+        self.critic.load_checkpoint()
+        self.target_critic.load_checkpoint()
+
+
+class MADDPG:
+    def __init__(self, actor_dims, critic_dims, agents, n_actions, scenario='simple', alpha=0.01, beta=0.01, fc1=64, fc2=64, gamma=0.99, tau=0.01, chkpt_dir='checkpoints/'):
+        self.n_agents = len(agents)
+        self.agents = {agent: Agent(actor_dims[agent], critic_dims, n_actions, self.n_agents, agent, chkpt_dir, alpha, beta) for agent in agents}
+
+        self.n_actions = n_actions
+        chkpt_dir += scenario
+
+    def save_checkpoint(self):
+        print(' === Saving Checkpoint ===')
+        for agent in self.agents.values():
+            agent.save_models()
+
+    def load_checkpoint(self):
+        print(' === Loading Checkpoint ===')
+        for agent in self.agents.values():
+            agent.load_models()
+
+    def choose_action(self, )
+
 
 cf = {
     'n_agents': 2, # Number of planes on each team
