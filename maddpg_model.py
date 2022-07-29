@@ -1,4 +1,3 @@
-from pyparsing import dict_of
 import battle_v1
 import numpy as np
 import supersuit as ss
@@ -130,7 +129,7 @@ class ActorNetwork(nn.Module):
         self.load_state_dict(T.load(self.chkpt_file))
 
 class Agent:
-    def __init__(self, actor_dims, critic_dims, n_actions, n_agents, agent_id, chkpt_dir, alpha=0.01, beta=0.01, fc1=64, fc2=64, gamma=0.99, tau=0.01):
+    def __init__(self, actor_dims, critic_dims, n_actions, n_agents, agent_id, chkpt_dir, alpha=0.01, beta=5e-3, fc1=64, fc2=64, gamma=0.95, tau=0.01):
         self.gamma = gamma
         self.tau = tau
         self.n_actions = n_actions
@@ -167,7 +166,7 @@ class Agent:
         self.target_critic.load_state_dict(critic_state_dict)
 
     def choose_action(self, observation):
-        state = T.tensor([observation], dtype=T.float).to(self.actor.device)
+        state = T.tensor(np.array([observation]), dtype=T.float).to(self.actor.device)
         actions = self.actor.forward(state)
         noise = T.rand(self.n_actions).to(self.actor.device)
         action = actions + noise
@@ -188,7 +187,7 @@ class Agent:
 
 
 class MADDPG:
-    def __init__(self, actor_dims, critic_dims, agents, n_actions, scenario='simple', alpha=0.01, beta=0.01, fc1=64, fc2=64, gamma=0.99, tau=0.01, chkpt_dir='checkpoints/'):
+    def __init__(self, actor_dims, critic_dims, agents, n_actions, scenario='simple', alpha=0.01, beta=5e-3, fc1=64, fc2=64, gamma=0.95, tau=0.01, chkpt_dir='checkpoints/'):
         self.n_agents = len(agents)
         self.agents_list = agents
         self.agents = [Agent(actor_dims[i], critic_dims, n_actions, self.n_agents, self.agents_list[i], chkpt_dir, alpha, beta, fc1, fc2, gamma, tau) for i in range(n_agents)]
@@ -221,7 +220,7 @@ class MADDPG:
         device = self.agents[0].actor.device
 
         states = T.tensor(states, dtype=T.float).to(device)
-        actions = T.tensor(actions, dtype=T.float).to(device)
+        actions = T.tensor(np.array(actions), dtype=T.float).to(device)
         rewards = T.tensor(rewards, dtype=T.float).to(device)
         states_ = T.tensor(states_, dtype=T.float).to(device)
         dones = T.tensor(dones).to(device)
@@ -252,13 +251,13 @@ class MADDPG:
             target = rewards[:, agent_idx] + agent.gamma*critic_value_.clone()
             critic_loss = F.mse_loss(target, critic_value)
             agent.critic.optimizer.zero_grad()
-            critic_loss.backward(retain_graph=True)
+            critic_loss.backward(retain_graph=True, inputs=list(self.agents[agent_idx].critic.parameters()))
             agent.critic.optimizer.step()
 
             actor_loss = agent.critic.forward(states, mu).flatten()
             actor_loss = -T.mean(actor_loss.clone())
             agent.actor.optimizer.zero_grad()
-            actor_loss.backward(retain_graph=True)
+            actor_loss.backward(retain_graph=True, inputs=list(self.agents[agent_idx].actor.parameters()))
             agent.actor.optimizer.step()
 
             agent.update_network_parameters()
@@ -291,11 +290,11 @@ if __name__ == '__main__':
     cf = {
         'n_agents': 2, # Number of planes on each team
         'show': False, # Show visuals
-        'hit_base_reward': 3, # Reward value for hitting enemy base
+        'hit_base_reward': 10, # Reward value for hitting enemy base
         'hit_plane_reward': 1, # Reward value for hitting enemy plane
         'miss_punishment': 0, # Punishment value for missing a shot
         'die_punishment': 0, # Punishment value for a plane dying
-        'fps': 120, # Framerate that the visuals run at
+        'fps': 60, # Framerate that the visuals run at
         'force_discrete_action': True
     }
 
@@ -311,8 +310,9 @@ if __name__ == '__main__':
     maddpg_agents = MADDPG(actor_dims, critic_dims, agents, n_actions, chkpt_dir=CHECKPOINT_DIR)
     memory = MultiAgentReplayBuffer(10000000, critic_dims, actor_dims, n_actions, agents, batch_size=1024)
 
-    PRINT_INTERVAL = 500
-    N_GAMES = 30000
+    PRINT_INTERVAL = 100
+    TRAIN_GAMES = 50000
+    EVAL_GAMES = 10
     total_steps = 0
     red_score_hist = []
     blue_score_hist = []
@@ -323,15 +323,15 @@ if __name__ == '__main__':
     if evaluate:
         maddpg_agents.load_checkpoint()
 
-    for i in range(N_GAMES):
+    for i in range(TRAIN_GAMES + EVAL_GAMES):
+        if i > TRAIN_GAMES:
+            evaluate = True
         obs = env.reset()
         red_score = 0
         blue_score = 0
         while not env.env.env_done:
             if evaluate:
                 env.env.show = True
-            else:
-                env.env.show = False
             actions = maddpg_agents.choose_action(dict_to_vec(obs, agents))
             obs_, rewards, dones, info = env.step(actions)
 
@@ -371,11 +371,5 @@ if __name__ == '__main__':
             if avg_blue > blue_best:
                 maddpg_agents.save_checkpoint()
                 blue_best = avg_blue
-        if i % PRINT_INTERVAL == 0 and i > 0:
-            print(f'====================\nEpisode: {i}\nAverage Red Score: {avg_red.round(1)}\nAverage Blue Score: {avg_blue.round(1)}')
-
-        
-    """
-    Need to change all outputs from env.step to a vec and then give that to the algorithm
-    Change code to match tutorial code and convert values to vec before sending to transition
-    """
+        if i % PRINT_INTERVAL == 0:
+            print(f'\n=========================\n| Episode: {i}\n| Timesteps: {total_steps}\n| Average Red Score: {avg_red.round(1)}\n| Average Blue Score: {avg_blue.round(1)}\n==========================\n')
