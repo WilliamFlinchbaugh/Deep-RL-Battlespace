@@ -1,6 +1,5 @@
 import battle_v1
 import supersuit as ss
-from stable_baselines3 import PPO
 
 cf = {
     'n_agents': 2, # Number of planes on each team
@@ -15,12 +14,11 @@ cf = {
 
 env = battle_v1.parallel_env(**cf)
 env = ss.black_death_v3(env)
-model = PPO.load("models/6/final_model")
 
 for _ in range(5):
     observations = env.reset()
     actions = {}
     while not env.env.env_done:
         for agent in env.agents:
-            actions[agent], _state = model.predict(observations[agent])
+            actions[agent] = env.action_space(agent).sample()
         observations, rewards, dones, infos = env.step(actions)
