@@ -66,6 +66,14 @@ As for dependencies, it gets a bit complicated with PZ, Gym, SB3, and Supersuit.
 To install the dependencies, open a terminal in the git directory and run:
 
 `pip install -r requirements.txt`
+
+There is an issue with the above command currently because there are dependency issues, so you might need to pip install each package independently
+
+In addition, you might have issues installing SuperSuit:
+
+If on Windows, you'll need to install the Visual Studio Build Tools so that you can install tinyscaler: https://visualstudio.microsoft.com/downloads/
+
+If on Linux, you just need to install gcc by running `sudo apt-get install gcc`
  
 # Papers/Tutorials/Docs:
 First off, I did a pretty good job at commenting the code in the PettingZoo environment, so it shouldn’t be too difficult to figure out what’s going on
@@ -86,7 +94,7 @@ https://arxiv.org/abs/2009.14471
  
 For training the PZ environment, the main approach right now for PZ environments is using Stable-Baselines3. Here’s the tutorial that the PettingZoo devs always point to:
 
-https://towardsdatascience.com/multi-agent-deep-reinforcement-learning-in-15-lines-of-code-using-pettingzoo-e0b963c0820b
+https://towardsdatascience.com/multi-agent-deep-reinforcems *almost* working, but still fails when training due to an issue in torch I believe.ent-learning-in-15-lines-of-code-using-pettingzoo-e0b963c0820b
  
 The Stable-Baselines3 docs are pretty good for understanding how everything works:
 
