@@ -706,7 +706,6 @@ class parallel_env(ParallelEnv, EzPickle):
             self.total_games += 1 
             self.ties += 1
             if self.show:
-                print("tie")
                 self.render()
             observations = {agent: self.observe(agent) for agent in self.possible_agents} # Get observation for each agent
             infos = {agent: {} for agent in self.possible_agents} # Empty info for each agent
@@ -744,7 +743,6 @@ class parallel_env(ParallelEnv, EzPickle):
 
                     if self.show:
                         self.render()
-                        print(f"{self.winner} wins")
 
                 # Didn't win, just hit the base
                 else:
