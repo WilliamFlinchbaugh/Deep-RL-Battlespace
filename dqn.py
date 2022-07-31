@@ -22,9 +22,9 @@ class DeepQNetwork(nn.Module):
         device = 'cuda:0' if T.cuda.is_available() and use_gpu else 'cpu'
         self.device = T.device(device)
         if device == 'cuda:0':
-            print("\n - Using GPU - \n")
+            print("- Using GPU -")
         else:
-            print("\n - Using CPU - \n")
+            print("- Using CPU -")
         self.to(self.device)
 
     def forward(self, state):
@@ -150,6 +150,7 @@ wins = {
     'tie': 0
 }
 
+print("\n\n=========================\n| STARTING TRAINING\n=========================\n")
 for i in range(n_games):
     obs = env.reset()
 
