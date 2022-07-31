@@ -4,10 +4,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
 import battle_v1
-import supersuit as ss
-import os
-
-device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
 
 class DeepQNetwork(nn.Module):
     def __init__(self, lr, input_dims, fc1_dims, fc2_dims,
@@ -23,7 +19,8 @@ class DeepQNetwork(nn.Module):
 
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
         self.loss = nn.MSELoss()
-        self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
+        # self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
+        self.device = T.device('cpu')
         self.to(self.device)
 
     def forward(self, state):
@@ -127,10 +124,10 @@ cf = {
 }
 
 GAMMA = 0.99
-LEARNING_RATE = 5e-3
+LEARNING_RATE = .01
 EPS_START = 1.0
-EPS_END = 0.03
-EPS_DEC = 8e-6
+EPS_END = 0.05
+EPS_DEC = 8e-7
 BATCH_SIZE = 64
 
 env = battle_v1.parallel_env(**cf)
@@ -141,12 +138,20 @@ for agent_id in env.possible_agents:
     agents[agent_id] = Agent(GAMMA, EPS_START, LEARNING_RATE, [env.obs_size], 
                             BATCH_SIZE, n_actions, eps_end=EPS_END, eps_dec=EPS_DEC)
 
-n_games = 10000
+n_games = 100000
 game_cntr = 0
+timesteps_cntr = 0
+wins = {
+    'red': 0,
+    'blue': 0,
+    'tie': 0
+}
 
 for i in range(n_games):
     obs = env.reset()
+
     while not env.env_done:
+        timesteps_cntr += 1
         alive_agents = env.agents
         actions = {}
         for agent in alive_agents:
@@ -157,12 +162,22 @@ for i in range(n_games):
                             rewards[agent], obs_[agent], dones[agent])
             agents[agent].learn()
         obs = obs_
-    if game_cntr % 50 == 0:
-        print(f"games: {game_cntr}\nepsilon: {agents[env.possible_agents[0]].epsilon}")
-        env.show = True
+
+    # Add outcome to wins
+    wins[env.winner] += 1
+
+    if game_cntr % 1000 == 0 and game_cntr > 0:
+        print(f'\n=========================\n| Epsilon: {agents[env.possible_agents[0]].epsilon}\n| Games: {game_cntr}\n| Timesteps: {timesteps_cntr}\n| Red Wins: {wins["red"]}\n| Blue Wins: {wins["blue"]}\n| Ties: {wins["ties"]}==========================\n')
+        wins = {'red': 0, 'blue': 0, 'tie': 0} # Reset the win history
+        env.show = True # Evaluate one game
     elif env.show:
         env.show = False
         env.close()
     game_cntr += 1
 
 env.close()
+
+# Save the models
+for agent_id, agent in agents.items():
+    path = f"models/{agent_id}.pt"
+    T.save(agent.Q_eval.state_dict(), path)
