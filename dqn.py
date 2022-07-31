@@ -7,7 +7,7 @@ import battle_v1
 
 class DeepQNetwork(nn.Module):
     def __init__(self, lr, input_dims, fc1_dims, fc2_dims,
-                 n_actions, use_gpu=True):
+                 n_actions):
         super(DeepQNetwork, self).__init__()
         self.input_dims = input_dims
         self.fc1_dims = fc1_dims
@@ -16,15 +16,9 @@ class DeepQNetwork(nn.Module):
         self.fc1 = nn.Linear(*self.input_dims, self.fc1_dims)
         self.fc2 = nn.Linear(self.fc1_dims, self.fc2_dims)
         self.fc3 = nn.Linear(self.fc2_dims, self.n_actions)
-
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
         self.loss = nn.MSELoss()
-        device = 'cuda:0' if T.cuda.is_available() and use_gpu else 'cpu'
         self.device = T.device(device)
-        if device == 'cuda:0':
-            print("- Using GPU -")
-        else:
-            print("- Using CPU -")
         self.to(self.device)
 
     def forward(self, state):
@@ -36,7 +30,7 @@ class DeepQNetwork(nn.Module):
 
 class Agent:
     def __init__(self, gamma, epsilon, lr, input_dims, batch_size, n_actions,
-                 max_mem_size=100000, eps_end=0.05, eps_dec=5e-4, use_gpu=True):
+                 max_mem_size=100000, eps_end=0.05, eps_dec=5e-4):
         self.gamma = gamma
         self.epsilon = epsilon
         self.eps_min = eps_end
@@ -50,7 +44,7 @@ class Agent:
         self.replace_target = 100
 
         self.Q_eval = DeepQNetwork(lr, n_actions=n_actions,
-                    input_dims=input_dims, fc1_dims=256, fc2_dims=256, use_gpu=use_gpu)
+                    input_dims=input_dims, fc1_dims=256, fc2_dims=256)
         self.state_memory = np.zeros((self.mem_size, *input_dims), dtype=np.float32)
         self.new_state_memory = np.zeros((self.mem_size, *input_dims), dtype=np.float32)
         self.action_memory = np.zeros(self.mem_size, dtype=np.int32)
@@ -124,6 +118,18 @@ cf = {
     'fps': 60 # Framerate that the visuals run at
 }
 
+# What device to use
+use_gpu = True
+
+if T.cuda.is_available():
+    print("GPU available")
+    if use_gpu:
+        print("Using GPU")
+        device = 'cuda:0'
+else:
+    print("GPU not available, using CPU")
+    device = 'cpu'
+
 GAMMA = 0.99
 LEARNING_RATE = .01
 EPS_START = 1.0
@@ -134,12 +140,10 @@ BATCH_SIZE = 64
 env = battle_v1.parallel_env(**cf)
 n_actions = env.n_actions
 
-use_gpu = True
-
 agents = {}
 for agent_id in env.possible_agents:
     agents[agent_id] = Agent(GAMMA, EPS_START, LEARNING_RATE, [env.obs_size], 
-                BATCH_SIZE, n_actions, eps_end=EPS_END, eps_dec=EPS_DEC, use_gpu=use_gpu)
+                BATCH_SIZE, n_actions, eps_end=EPS_END, eps_dec=EPS_DEC)
 
 n_games = 100000
 game_cntr = 0
@@ -150,7 +154,7 @@ wins = {
     'tie': 0
 }
 
-print("\n\n=========================\n| STARTING TRAINING\n=========================\n")
+print("\n\n=====================\n| STARTING TRAINING |\n=====================\n")
 for i in range(n_games):
     obs = env.reset()
 
