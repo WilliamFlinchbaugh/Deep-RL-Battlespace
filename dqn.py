@@ -184,7 +184,7 @@ for i in range(n_games):
         print(f'\n=========================\n\
 | Elapsed Time: {time.strftime("%H:%M:%S", time.gmtime(elapsed))}\n\
 | Games: {env.total_games}\n\
-| Epsilon: {agents[env.possible_agents[0]].epsilon}\n\
+| Epsilon: {round(agents[env.possible_agents[0]].epsilon, 3)}\n\
 | Timesteps: {timesteps_cntr}\n\
 | Red Wins: {wins["red"]}\n\
 | Blue Wins: {wins["blue"]}\n\
