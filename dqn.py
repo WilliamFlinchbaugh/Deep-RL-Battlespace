@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
 import battle_v1
+import timeit
 
 class DeepQNetwork(nn.Module):
     def __init__(self, lr, input_dims, fc1_dims, fc2_dims,
@@ -122,12 +123,12 @@ cf = {
 use_gpu = True
 
 if T.cuda.is_available():
-    print("GPU available")
+    print("\nGPU available")
     if use_gpu:
         print("Using GPU")
         device = 'cuda:0'
 else:
-    print("GPU not available, using CPU")
+    print("\nUsing CPU")
     device = 'cpu'
 
 GAMMA = 0.99
@@ -146,7 +147,6 @@ for agent_id in env.possible_agents:
                 BATCH_SIZE, n_actions, eps_end=EPS_END, eps_dec=EPS_DEC)
 
 n_games = 100000
-game_cntr = 0
 timesteps_cntr = 0
 wins = {
     'red': 0,
@@ -155,6 +155,8 @@ wins = {
 }
 
 print("\n\n=====================\n| STARTING TRAINING |\n=====================\n")
+start = timeit.default_timer() # Get the starting time
+
 for i in range(n_games):
     obs = env.reset()
 
@@ -174,14 +176,26 @@ for i in range(n_games):
     # Add outcome to wins
     wins[env.winner] += 1
 
-    if game_cntr % 1000 == 0 and game_cntr > 0:
-        print(f'\n=========================\n| Epsilon: {agents[env.possible_agents[0]].epsilon}\n| Games: {game_cntr}\n| Timesteps: {timesteps_cntr}\n| Red Wins: {wins["red"]}\n| Blue Wins: {wins["blue"]}\n| Ties: {wins["ties"]}==========================\n')
+    if env.total_games % 100 == 0 and env.total_games > 0:
+        now = timeit.default_timer()
+        time = now - start # Elapsed time in seconds
+
+        # Print out progress
+        print(f'\n=========================\n\
+| Elapsed Time: {int(time//3600)}::{int(time%3600//60)}::{int(time%3600%60)}\n\
+| Games: {env.total_games}\n\
+| Epsilon: {agents[env.possible_agents[0]].epsilon}\n\
+| Timesteps: {timesteps_cntr}\n\
+| Red Wins: {wins["red"]}\n\
+| Blue Wins: {wins["blue"]}\n\
+| Ties: {wins["tie"]}\n\
+==========================\n')
+
         wins = {'red': 0, 'blue': 0, 'tie': 0} # Reset the win history
         env.show = True # Evaluate one game
     elif env.show:
         env.show = False
         env.close()
-    game_cntr += 1
 
 env.close()
 
