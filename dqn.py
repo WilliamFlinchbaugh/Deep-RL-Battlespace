@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
 import battle_v1
-import timeit
+import time
 
 class DeepQNetwork(nn.Module):
     def __init__(self, lr, input_dims, fc1_dims, fc2_dims,
@@ -154,8 +154,8 @@ wins = {
     'tie': 0
 }
 
-print("\n\n=====================\n| STARTING TRAINING |\n=====================\n")
-start = timeit.default_timer() # Get the starting time
+print("\n=====================\n| STARTING TRAINING |\n=====================\n")
+start = time.time() # Get the starting time
 
 for i in range(n_games):
     obs = env.reset()
@@ -177,12 +177,12 @@ for i in range(n_games):
     wins[env.winner] += 1
 
     if env.total_games % 100 == 0 and env.total_games > 0:
-        now = timeit.default_timer()
-        time = now - start # Elapsed time in seconds
+        now = time.time()
+        elapsed = now - start # Elapsed time in seconds
 
         # Print out progress
         print(f'\n=========================\n\
-| Elapsed Time: {int(time//3600)}::{int(time%3600//60)}::{int(time%3600%60)}\n\
+| Elapsed Time: {time.strftime("%H:%M:%S", time.gmtime(elapsed))}\n\
 | Games: {env.total_games}\n\
 | Epsilon: {agents[env.possible_agents[0]].epsilon}\n\
 | Timesteps: {timesteps_cntr}\n\
