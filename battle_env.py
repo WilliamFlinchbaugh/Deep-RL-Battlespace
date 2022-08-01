@@ -781,6 +781,8 @@ class parallel_env(ParallelEnv, EzPickle):
         if self.env_done: # The game is over
             self.agents = [] # Kill all agents 
             self.dones = {agent: True for agent in self.possible_agents} # Set all agents to done
+            if self.team['blue']['base'].alive and self.team['red']['base'].alive:
+                self.winner = "tie"
         
         return observations, rewards, self.dones, infos
     
