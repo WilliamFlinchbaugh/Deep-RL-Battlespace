@@ -256,7 +256,7 @@ for i in range(n_games):
         wins = {'red': 0, 'blue': 0, 'tie': 0} # Reset the win history'
 
         # Visualize 1 game every 1000 trained games
-        if env.total_games % 1000:
+        if env.total_games % 1000 == 0:
             env.show = True
 
         # Save models
