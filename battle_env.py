@@ -343,7 +343,7 @@ class Bullet(pygame.sprite.Sprite):
     """
     Pygame sprite of a bullet
     """
-    def __init__(self, x, y, angle, speed, fcolor, oteam):
+    def __init__(self, x, y, angle, speed, fcolor, oteam, agent_id):
         """Initiates values
 
         Args:
@@ -360,6 +360,7 @@ class Bullet(pygame.sprite.Sprite):
         self.fcolor = fcolor
         self.color = RED if self.fcolor == 'red' else BLUE
         self.oteam = oteam
+        self.agent_id = agent_id
         self.image.fill(self.color)
         self.rect = self.image.get_rect(center=(x, y))
         self.w, self.h = self.image.get_size()
@@ -731,33 +732,19 @@ class parallel_env(ParallelEnv, EzPickle):
 
             # Kill bullet if miss
             if outcome == 'miss':
-                rewards[agent_id] += self.miss_punishment # Issue punishment for missing
+                rewards[bullet.agent_id] += self.miss_punishment # Issue punishment for missing
                 self.bullets.remove(bullet) # Kill the bullet
 
             # Kill bullet and provide reward if hits base
             elif isinstance(outcome, Base):
                 outcome.hit() # Damage the base 
-                rewards[agent_id] += self.hit_base_reward # Issue the reward for hitting
-
-                # Won the game (base is dead)
-                if not outcome.alive:
-                    self.winner = bullet.fcolor
-                    self.team[bullet.fcolor]['wins'] += 1
-                    self.total_games += 1
-                    self.dones = {agent: True for agent in self.possible_agents}
-                    self.env_done = True
-
-                    if self.show:
-                        self.render()
-
-                # Didn't win, just hit the base
-                else:
-                    self.bullets.remove(bullet) # Kill the bullet
+                rewards[bullet.agent_id] += self.hit_base_reward # Issue the reward for hitting
+                self.bullets.remove(bullet) # Kill the bullet
             
             # Kill bullet and provide reward if hits plane
             elif isinstance(outcome, Plane):
                 outcome.hit() # Damage the plane
-                rewards[agent_id] += self.hit_plane_reward # Issue reward for hitting plane
+                rewards[bullet.agent_id] += self.hit_plane_reward # Issue reward for hitting plane
                 self.bullets.remove(bullet) # Kill the bullet
 
                 # Plane is dead
@@ -768,6 +755,21 @@ class parallel_env(ParallelEnv, EzPickle):
                     self.team[outcome.team]['planes'].pop(outcome.id) # Remove the plane from its team
                     rewards[outcome.id] += self.die_punishment # Issue punishment for dying
                     self.dones[outcome.id] = True # Set that agent's done to True
+        
+        # Check if red won game
+        if not self.team['blue']['base'].alive:
+            self.winner = 'red'
+            self.team['red']['wins'] += 1
+            self.total_games += 1
+            self.dones = {agent: True for agent in self.possible_agents}
+            self.env_done = True
+
+        if not self.team['red']['base'].alive:
+            self.winner = 'blue'
+            self.team['blue']['wins'] += 1
+            self.total_games += 1
+            self.dones = {agent: True for agent in self.possible_agents}
+            self.env_done = True
 
         # Render the environment
         if self.show:
