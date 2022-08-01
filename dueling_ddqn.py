@@ -72,8 +72,9 @@ class DuelingDeepQNetwork(nn.Module):
 
 class Agent():
     def __init__(self, gamma, epsilon, lr, n_actions, input_dims,
-                 mem_size, batch_size, eps_min=0.01, eps_dec=5e-7,
+                 mem_size, batch_size, agent_id, eps_min=0.01, eps_dec=5e-7,
                  replace=1000, chkpt_dir='tmp'):
+        self.agent_id = agent_id
         self.gamma = gamma
         self.epsilon = epsilon
         self.lr = lr
@@ -91,12 +92,12 @@ class Agent():
 
         self.q_eval = DuelingDeepQNetwork(self.lr, self.n_actions,
                                    input_dims=self.input_dims,
-                                   name='battle_eval',
+                                   name=f'battle_eval_{agent_id}',
                                    chkpt_dir=self.chkpt_dir)
 
         self.q_next = DuelingDeepQNetwork(self.lr, self.n_actions,
                                    input_dims=self.input_dims,
-                                   name='battle_next',
+                                   name=f'battle_next_{agent_id}',
                                    chkpt_dir=self.chkpt_dir)
 
     def choose_action(self, observation):
@@ -206,7 +207,7 @@ n_actions = env.n_actions
 agents = {}
 for agent_id in env.possible_agents:
     agents[agent_id] = Agent(GAMMA, 1.0, LEARNING_RATE, n_actions, [env.obs_size], 
-                BUFFER_SIZE, BATCH_SIZE, eps_min=EPS_MIN, eps_dec=EPS_DEC)
+                BUFFER_SIZE, BATCH_SIZE, agent_id, eps_min=EPS_MIN, eps_dec=EPS_DEC)
 
 n_games = 200000
 timesteps_cntr = 0
@@ -268,3 +269,4 @@ for i in range(n_games):
         env.close()
 
 env.close()
+
