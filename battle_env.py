@@ -809,7 +809,7 @@ class parallel_env(ParallelEnv, EzPickle):
 
          # --------------- SHOOT ---------------
         elif action == 1:
-            self.bullets.append(Bullet(agent_pos[0], agent_pos[1], agent_dir, self.bullet_speed, team, self.team[oteam])) # Shoot a bullet
+            self.bullets.append(Bullet(agent_pos[0], agent_pos[1], agent_dir, self.bullet_speed, team, self.team[oteam], agent_id)) # Shoot a bullet
             agent.forward(self.speed, self.time_step) # Move the plane forward
         
         # --------------- TURN LEFT ---------------
