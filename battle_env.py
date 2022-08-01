@@ -691,13 +691,18 @@ class parallel_env(ParallelEnv, EzPickle):
             infos (dict): Used for extra info (not utilized)
         """
 
+        # Set rewards and cumulative rewards to 0
+        rewards = {agent: 0 for agent in self.possible_agents}
+
         # If passing no actions
         if not actions:
             self.agents = [] # Kill all agents
-            return {}, {}, {}, {} # Return empty stuff
+            self.env_done = True # Set environment to done
+            observations = {agent: self.observe(agent) for agent in self.possible_agents} # Get observation for each agent
+            infos = {agent: {} for agent in self.possible_agents} # Empty info for each agent
+            self.dones = {agent: True for agent in self.possible_agents}
+            return observations, rewards, self.dones, infos 
 
-        # Set rewards and cumulative rewards to 0
-        rewards = {agent: 0 for agent in self.possible_agents}
         # Increase time and check for a tie
         self.total_time += self.time_step
         if self.total_time >= self.max_time: # If over the max time
