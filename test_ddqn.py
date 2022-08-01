@@ -26,7 +26,7 @@ else:
 
 GAMMA = 0.99
 LEARNING_RATE = 0.001
-EPS_MIN = 0.05
+EPS_MIN = 0.00
 EPS_DEC = 8e-7
 BUFFER_SIZE = 100000
 BATCH_SIZE = 32
@@ -36,7 +36,7 @@ n_actions = env.n_actions
 
 agents = {}
 for agent_id in env.possible_agents:
-    agents[agent_id] = Agent(GAMMA, 1.0, LEARNING_RATE, n_actions, [env.obs_size], BUFFER_SIZE, BATCH_SIZE, eps_min=EPS_MIN, eps_dec=EPS_DEC)
+    agents[agent_id] = Agent(GAMMA, 0, LEARNING_RATE, n_actions, [env.obs_size], BUFFER_SIZE, BATCH_SIZE, eps_min=EPS_MIN, eps_dec=EPS_DEC)
     agents[agent_id].load_models()
 
 for i in range(10):
