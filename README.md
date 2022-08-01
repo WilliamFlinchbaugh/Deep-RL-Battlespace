@@ -5,7 +5,7 @@ Repo: https://github.com/BallpointPenBoi/Deep-RL-Battlespace
 # Contributors:
 William Flinchbaugh (“Project lead”, wrote every bit of the code, I’m the one that wrote these docs, TAMS student), 
  
-Shane Forry (Worked on poster, logistiWorkedcs, ideas, REU student), 
+Shane Forry (Worked on poster, logistics, ideas, REU student), 
  
 Anshuman Singhal (Worked on paper a bit, did some research, TAMS student), 
  
@@ -31,7 +31,7 @@ I started writing a custom MADDPG model based on a tutorial (listed below) and i
 I just started using a dueling DDQN model for the agents which seems to actually be giving decent results. It’s essentially just a torch model that I stole from ML with Phil. Link is below.
  
 # Steps going forwards:
-Custom multi-agent torch model to replace stable baselines (PPO? DDPG?)
+Custom multi-agent torch model to replace stable baselines (Possibly PPO? DDQN is somewhat working, but actor critic is likely best for collaboration)
  
 Larger state space (including friendly plane information)
  
@@ -131,3 +131,57 @@ https://www.youtube.com/watch?v=wc-FxNENg9U
 https://github.com/philtabor/Youtube-Code-Repository/blob/master/ReinforcementLearning/DeepQLearning/simple_dqn_torch_2020.py
  
 https://github.com/philtabor/Youtube-Code-Repository/blob/master/ReinforcementLearning/DeepQLearning/dueling_ddqn_torch.py
+ 
+ 
+ 
+------------------- OLD STUFF -------------------
+CAE Meeting Notes: 
+Data collection – Initially the data will be collected at the CAE side. In the meantime, the data collection setup process will start at UNT
+Going to CAE on Wednesday 2/23 to get familiar with the lab/people and to discuss more about the data to be used/how much there will be/who will collect it
+Data transfer from CAE to UNT side will be either through hard disk or OneDrive
+Should maintain a level of abstraction for the security purposes. Will be dealing with the problem statement in the subtask manner.
+Contract is still not signed but hopeful it will be by the end of this week (2/25) so that we can fully start project
+In person meeting pushed back a week due to weather (03/02)
+Talked about plan for security issues and found possible solution of using another software to gather data similar to the MACE data
+Plans to get first data batch from CAE this week (02/28) and recreate it using another software to have wider team involvement 
+Eventually, UNT will generate the data and all of the runs needed for training once we have the hardware in place (contract is finalized) 
+ 
+
+Links and team meeting notes:
+2/14/2022 tutorials:
+Train a deep DQN with TF agents: A good tutorial that is easy to implement right away as an interactive collab notebook. Uses deep reinforcement learning on a game where you move the platform either left or right to keep the free moving pole vertical. Uses average return for the evaluation policy. 
+https://colab.research.google.com/github/tensorflow/agents/blob/master/docs/tutorials/1_dqn_tutorial.ipynb#scrollTo=M7-XpPP99Cy7
+ 
+An introduction to reinforcement learning: 
+https://towardsdatascience.com/drl-01-a-gentle-introduction-to-deep-reinforcement-learning-405b79866bf4
+https://github.com/mswang12/minDQN/blob/main/minDQN.py
+
+Unity ML-agents Toolkit documentation:
+https://github.com/Unity-Technologies/ml-agents/blob/release_19_docs/docs/Readme.md
+
+2/21/2022 Tutorials:
+Autonomous Aircraft Sequencing and Separation: https://arxiv.org/pdf/1911.08265.pdf (Ganesh)
+ 
+Connect 4 with deep RL and Monte Carlo Tree Search: Has code repo for connect 4 and Tic Tac Toe  that makes it easy to implement the tutorial. Also uses Deep Q learning and adds in Monte Carlo Tree Search for comparison. They both performed very well and found that the most important thing is being the first player, not second. 
+https://towardsdatascience.com/deep-reinforcement-learning-and-monte-carlo-tree-search-with-connect-4-ba22a4713e7a (Rebecca)
+ 
+Self-Driving Cab (Manasa) 
+ 
+Creating custom environment for shower temperature: PDF attached (Mounika) 
+
+2/28/2022 Papers:
+Autonomous Aircraft Sequencing and Separation: https://arxiv.org/pdf/1911.08265.pdf (Ganesh)
+Autonomous Air traffic controller: https://arxiv.org/pdf/1905.01303v1.pdf (Mounika)
+ 
+Instance-based defense against adversarial attacks in Deep RL: Not an easy to implement tutorial, but good for being closer to our problem statement and having more theoretical details. Talks about “Safe Reinforcement Learning” for defense against adversarial attacks. The algorithm they proposed uses a risk function based on how far a state space is from a known state space, which allows earlier detection of adverse events. 
+https://www.sciencedirect.com/science/article/abs/pii/S0952197621003626 (Rebecca)
+ 
+Soft Actor-critic DRL for Fault Tolerant Flight Control: https://paperswithcode.com/paper/soft-actor-critic-deep-reinforcement-learning (Bhargav)
+ 
+
+6/6/2022 Tutorials:
+Creating a simple OpenAI Gym environment: (Use part of what we have, rewrite the rest) https://blog.paperspace.com/creating-custom-environments-openai-gym/
+Once we have the environment, this tutorial can help us implement: https://www.gocoder.one/blog/rl-tutorial-with-openai-gym
+Good tutorial for training the model: https://www.youtube.com/watch?v=cO5g5qLrLSo
+Creating a custom environment: https://www.youtube.com/watch?v=bD6V3rcr_54
+
