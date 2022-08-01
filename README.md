@@ -28,8 +28,10 @@ There was a small effort on a Unity game (not in repo) because Unity’s ML-Agen
  
 I started writing a custom MADDPG model based on a tutorial (listed below) and it runs, but doesn’t seem to learn much. It’s a bit janky since DDPG is meant for continuous action spaces. I also created a DQN model for multi-agent that seems to work, but has to train for a really really long time. Since it’s DQN, the agents might not learn to collaborate.
  
+I just started using a dueling DDQN model for the agents which seems to actually be giving decent results. It’s essentially just a torch model that I stole from ML with Phil. Link is below.
+ 
 # Steps going forwards:
-Custom multi-agent torch model to replace stable baselines (PPO? DDPG?)
+Custom multi-agent torch model to replace stable baselines (Possibly PPO? DDQN is somewhat working, but actor critic is likely best for collaboration)
  
 Larger state space (including friendly plane information)
  
@@ -119,3 +121,13 @@ It’s important to note that we cannot use centralized actors because there are
 Here’s the paper that this video covers:
  
 https://arxiv.org/pdf/1706.02275.pdf
+ 
+The same guy, Machine Learning with Phil, also made the DQN and Dueling DDQN that I used with MARL. Here are the links to the videos and the code:
+ 
+https://www.youtube.com/watch?v=H9uCYnG3LlE
+ 
+https://www.youtube.com/watch?v=wc-FxNENg9U
+ 
+https://github.com/philtabor/Youtube-Code-Repository/blob/master/ReinforcementLearning/DeepQLearning/simple_dqn_torch_2020.py
+ 
+https://github.com/philtabor/Youtube-Code-Repository/blob/master/ReinforcementLearning/DeepQLearning/dueling_ddqn_torch.py
