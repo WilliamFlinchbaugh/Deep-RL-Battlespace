@@ -37,7 +37,7 @@ n_actions = env.n_actions
 agents = {}
 for agent_id in env.possible_agents:
     agents[agent_id] = Agent(GAMMA, 1.0, LEARNING_RATE, n_actions, [env.obs_size], BUFFER_SIZE, BATCH_SIZE, eps_min=EPS_MIN, eps_dec=EPS_DEC)
-    agents[agent_id].q_eval.load_checkpoint(f"battle_eval_{agent_id}")
+    agents[agent_id].load_models()
 
 for i in range(10):
     obs = env.reset()
