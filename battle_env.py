@@ -296,8 +296,8 @@ class Base(pygame.sprite.Sprite):
         self.alive = True
         self.hp = self.max_hp
         if self.team == 'red':
-            x = self.xmax/3 * random.random()
-            y = self.ymax * random.random()
+            x = self.xmax/3 * random.random() + self.xmin
+            y = self.ymax * random.random() + self.ymin
             self.rect.center = (x, y)
         else:
             x = self.xmax/3 * random.random() + (2 * self.xmax) / 3
