@@ -4,12 +4,12 @@ import battle_v1
 
 cf = {
     'n_agents': 2, # Number of planes on each team
-    'show': False, # Show visuals
+    'show': True, # Show visuals
     'hit_base_reward': 10, # Reward value for hitting enemy base
     'hit_plane_reward': 1, # Reward value for hitting enemy plane
     'miss_punishment': 0, # Punishment value for missing a shot
     'die_punishment': 0, # Punishment value for a plane dying
-    'fps': 60 # Framerate that the visuals run at
+    'fps': 30 # Framerate that the visuals run at
 }
 
 # What device to use
@@ -36,7 +36,7 @@ n_actions = env.n_actions
 
 agents = {}
 for agent_id in env.possible_agents:
-    agents[agent_id] = Agent(GAMMA, 0, LEARNING_RATE, n_actions, [env.obs_size], BUFFER_SIZE, BATCH_SIZE, eps_min=EPS_MIN, eps_dec=EPS_DEC)
+    agents[agent_id] = Agent(GAMMA, 0, LEARNING_RATE, n_actions, [env.obs_size], BUFFER_SIZE, BATCH_SIZE, agent_id, eps_min=EPS_MIN, eps_dec=EPS_DEC)
     agents[agent_id].load_models()
 
 for i in range(10):
