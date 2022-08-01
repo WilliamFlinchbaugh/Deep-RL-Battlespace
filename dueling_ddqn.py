@@ -182,91 +182,93 @@ cf = {
     'fps': 60 # Framerate that the visuals run at
 }
 
-# What device to use
-use_gpu = True
+if __name__ == '__main__':
 
-if T.cuda.is_available():
-    print("\nGPU available")
-    if use_gpu:
-        print("Using GPU")
-        device = 'cuda:0'
-else:
-    print("\nUsing CPU")
-    device = 'cpu'
+    # What device to use
+    use_gpu = True
 
-GAMMA = 0.99
-LEARNING_RATE = 0.001
-EPS_MIN = 0.05
-EPS_DEC = 8e-7
-BUFFER_SIZE = 100000
-BATCH_SIZE = 32
+    if T.cuda.is_available():
+        print("\nGPU available")
+        if use_gpu:
+            print("Using GPU")
+            device = 'cuda:0'
+    else:
+        print("\nUsing CPU")
+        device = 'cpu'
 
-env = battle_v1.parallel_env(**cf)
-n_actions = env.n_actions
+    GAMMA = 0.99
+    LEARNING_RATE = 0.001
+    EPS_MIN = 0.05
+    EPS_DEC = 8e-7
+    BUFFER_SIZE = 100000
+    BATCH_SIZE = 32
 
-agents = {}
-for agent_id in env.possible_agents:
-    agents[agent_id] = Agent(GAMMA, 1.0, LEARNING_RATE, n_actions, [env.obs_size], 
-                BUFFER_SIZE, BATCH_SIZE, agent_id, eps_min=EPS_MIN, eps_dec=EPS_DEC)
+    env = battle_v1.parallel_env(**cf)
+    n_actions = env.n_actions
 
-n_games = 30000
-timesteps_cntr = 0
-wins = {
-    'red': 0,
-    'blue': 0,
-    'tie': 0
-}
+    agents = {}
+    for agent_id in env.possible_agents:
+        agents[agent_id] = Agent(GAMMA, 1.0, LEARNING_RATE, n_actions, [env.obs_size], 
+                    BUFFER_SIZE, BATCH_SIZE, agent_id, eps_min=EPS_MIN, eps_dec=EPS_DEC)
 
-print("\n=====================\n| STARTING TRAINING |\n=====================\n")
-start = time.time() # Get the starting time
+    n_games = 30000
+    timesteps_cntr = 0
+    wins = {
+        'red': 0,
+        'blue': 0,
+        'tie': 0
+    }
 
-for i in range(n_games):
-    obs = env.reset()
+    print("\n=====================\n| STARTING TRAINING |\n=====================\n")
+    start = time.time() # Get the starting time
 
-    while not env.env_done:
-        timesteps_cntr += 1
-        alive_agents = env.agents
-        actions = {}
-        for agent in alive_agents:
-            actions[agent] = agents[agent].choose_action(obs[agent])
-        obs_, rewards, dones, info = env.step(actions)
-        for agent in alive_agents:
-            agents[agent].store_transition(obs[agent], actions[agent],
-                            rewards[agent], obs_[agent], dones[agent])
-            agents[agent].learn()
-        obs = obs_
+    for i in range(n_games):
+        obs = env.reset()
 
-    # Add outcome to wins
-    wins[env.winner] += 1
+        while not env.env_done:
+            timesteps_cntr += 1
+            alive_agents = env.agents
+            actions = {}
+            for agent in alive_agents:
+                actions[agent] = agents[agent].choose_action(obs[agent])
+            obs_, rewards, dones, info = env.step(actions)
+            for agent in alive_agents:
+                agents[agent].store_transition(obs[agent], actions[agent],
+                                rewards[agent], obs_[agent], dones[agent])
+                agents[agent].learn()
+            obs = obs_
 
-    if env.total_games % 100 == 0 and env.total_games > 0:
-        now = time.time()
-        elapsed = now - start # Elapsed time in seconds
+        # Add outcome to wins
+        wins[env.winner] += 1
 
-        # Print out progress
-        print(f'\n=========================\n\
-| Elapsed Time: {time.strftime("%H:%M:%S", time.gmtime(elapsed))}\n\
-| Games: {env.total_games}\n\
-| Epsilon: {round(agents[env.possible_agents[0]].epsilon, 3)}\n\
-| Timesteps: {timesteps_cntr}\n\
-| Red Wins: {wins["red"]}\n\
-| Blue Wins: {wins["blue"]}\n\
-| Ties: {wins["tie"]}\n\
-==========================\n')
+        if env.total_games % 100 == 0 and env.total_games > 0:
+            now = time.time()
+            elapsed = now - start # Elapsed time in seconds
 
-        wins = {'red': 0, 'blue': 0, 'tie': 0} # Reset the win history'
+            # Print out progress
+            print(f'\n=========================\n\
+    | Elapsed Time: {time.strftime("%H:%M:%S", time.gmtime(elapsed))}\n\
+    | Games: {env.total_games}\n\
+    | Epsilon: {round(agents[env.possible_agents[0]].epsilon, 3)}\n\
+    | Timesteps: {timesteps_cntr}\n\
+    | Red Wins: {wins["red"]}\n\
+    | Blue Wins: {wins["blue"]}\n\
+    | Ties: {wins["tie"]}\n\
+    ==========================\n')
 
-        # Visualize 1 game every 1000 trained games
-        if env.total_games % 1000 == 0:
-            env.show = True
+            wins = {'red': 0, 'blue': 0, 'tie': 0} # Reset the win history'
 
-        # Save models
-        for agent in agents.values():
-            agent.save_models()
+            # Visualize 1 game every 1000 trained games
+            if env.total_games % 1000 == 0:
+                env.show = True
 
-    elif env.show:
-        env.show = False
-        env.close()
+            # Save models
+            for agent in agents.values():
+                agent.save_models()
 
-env.close()
+        elif env.show:
+            env.show = False
+            env.close()
+
+    env.close()
 
