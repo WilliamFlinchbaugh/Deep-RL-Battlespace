@@ -1,0 +1,21 @@
+import battle_v1
+
+cf = {
+    'n_agents': 2, # Number of planes on each team
+    'show': True, # Show visuals
+    'hit_base_reward': 1, # Reward value for hitting enemy base
+    'hit_plane_reward': 1, # Reward value for hitting enemy plane
+    'miss_punishment': 0, # Punishment value for missing a shot
+    'die_punishment': 0, # Punishment value for a plane dying
+    'fps': 15 # Framerate that the visuals run at
+}
+
+env = battle_v1.parallel_env(**cf)
+
+for _ in range(5):
+    observations = env.reset()
+    actions = {}
+    while not env.env.env_done:
+        for agent in env.agents:
+            actions[agent] = env.action_space(agent).sample()
+        observations, rewards, dones, infos = env.step(actions)
