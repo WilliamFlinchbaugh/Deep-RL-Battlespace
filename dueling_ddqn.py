@@ -209,7 +209,7 @@ for agent_id in env.possible_agents:
     agents[agent_id] = Agent(GAMMA, 1.0, LEARNING_RATE, n_actions, [env.obs_size], 
                 BUFFER_SIZE, BATCH_SIZE, agent_id, eps_min=EPS_MIN, eps_dec=EPS_DEC)
 
-n_games = 200000
+n_games = 30000
 timesteps_cntr = 0
 wins = {
     'red': 0,
