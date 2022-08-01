@@ -194,11 +194,11 @@ else:
     device = 'cpu'
 
 GAMMA = 0.99
-LEARNING_RATE = .01
+LEARNING_RATE = 0.001
 EPS_MIN = 0.05
-EPS_DEC = 8e-6
+EPS_DEC = 8e-7
 BUFFER_SIZE = 100000
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 
 env = battle_v1.parallel_env(**cf)
 n_actions = env.n_actions
@@ -208,7 +208,7 @@ for agent_id in env.possible_agents:
     agents[agent_id] = Agent(GAMMA, 1.0, LEARNING_RATE, n_actions, [env.obs_size], 
                 BUFFER_SIZE, BATCH_SIZE, eps_min=EPS_MIN, eps_dec=EPS_DEC)
 
-n_games = 100000
+n_games = 1000000
 timesteps_cntr = 0
 wins = {
     'red': 0,
