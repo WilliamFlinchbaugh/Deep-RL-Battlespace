@@ -1,4 +1,4 @@
-from dueling_ddqn import Agent, DuelingDeepQNetwork, ReplayBuffer
+from dueling_ddqn import Agent
 import torch as T
 import battle_v1
 
