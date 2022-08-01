@@ -208,7 +208,7 @@ for agent_id in env.possible_agents:
     agents[agent_id] = Agent(GAMMA, 1.0, LEARNING_RATE, n_actions, [env.obs_size], 
                 BUFFER_SIZE, BATCH_SIZE, eps_min=EPS_MIN, eps_dec=EPS_DEC)
 
-n_games = 1000000
+n_games = 200000
 timesteps_cntr = 0
 wins = {
     'red': 0,
@@ -253,8 +253,11 @@ for i in range(n_games):
 | Ties: {wins["tie"]}\n\
 ==========================\n')
 
-        wins = {'red': 0, 'blue': 0, 'tie': 0} # Reset the win history
-        env.show = True # Evaluate one game
+        wins = {'red': 0, 'blue': 0, 'tie': 0} # Reset the win history'
+
+        # Visualize 1 game every 1000 trained games
+        if env.total_games % 1000:
+            env.show = True
 
         # Save models
         for agent in agents.values():
