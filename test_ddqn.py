@@ -9,7 +9,7 @@ cf = {
     'hit_plane_reward': 1, # Reward value for hitting enemy plane
     'miss_punishment': 0, # Punishment value for missing a shot
     'die_punishment': 0, # Punishment value for a plane dying
-    'fps': 30 # Framerate that the visuals run at
+    'fps': 20 # Framerate that the visuals run at
 }
 
 GAMMA = 0.99
@@ -27,7 +27,7 @@ for agent_id in env.possible_agents:
     agents[agent_id] = Agent(GAMMA, 0, LEARNING_RATE, n_actions, [env.obs_size], BUFFER_SIZE, BATCH_SIZE, agent_id, eps_min=EPS_MIN, eps_dec=EPS_DEC, chkpt_dir="models/dueling_ddqn_2")
     agents[agent_id].load_models()
 
-for i in range(10):
+for i in range(20):
     obs = env.reset()
 
     while not env.env_done:
