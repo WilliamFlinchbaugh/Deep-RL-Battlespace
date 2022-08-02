@@ -586,7 +586,7 @@ class parallel_env(ParallelEnv, EzPickle):
         self.die_punishment = die_punishment
         self.fps = fps
         self.vid_path = "videos"
-        self.vid_cntr = 0
+        self.vid_cntr = 1
 
     def observation_space(self, agent):
         """Gets the observation space for a given agent
