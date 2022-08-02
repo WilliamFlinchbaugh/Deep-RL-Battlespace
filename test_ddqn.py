@@ -14,12 +14,14 @@ cf = {
 
 # What device to use
 use_gpu = True
-
 if T.cuda.is_available():
     print("\nGPU available")
     if use_gpu:
         print("Using GPU")
         device = 'cuda:0'
+    else:
+        print("\nUsing CPU")
+        device = 'cpu'
 else:
     print("\nUsing CPU")
     device = 'cpu'
@@ -36,7 +38,7 @@ n_actions = env.n_actions
 
 agents = {}
 for agent_id in env.possible_agents:
-    agents[agent_id] = Agent(GAMMA, 0, LEARNING_RATE, n_actions, [env.obs_size], BUFFER_SIZE, BATCH_SIZE, agent_id, eps_min=EPS_MIN, eps_dec=EPS_DEC)
+    agents[agent_id] = Agent(GAMMA, 0, LEARNING_RATE, n_actions, [env.obs_size], BUFFER_SIZE, BATCH_SIZE, agent_id, eps_min=EPS_MIN, eps_dec=EPS_DEC, chkpt_dir="models/dueling_ddqn_2")
     agents[agent_id].load_models()
 
 for i in range(10):

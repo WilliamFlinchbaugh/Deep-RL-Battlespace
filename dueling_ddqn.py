@@ -66,7 +66,7 @@ class DuelingDeepQNetwork(nn.Module):
         T.save(self.state_dict(), self.checkpoint_file)
 
     def load_checkpoint(self):
-        self.load_state_dict(T.load(self.checkpoint_file))
+        self.load_state_dict(T.load(self.checkpoint_file, map_location=self.device))
 
 class Agent():
     def __init__(self, gamma, epsilon, lr, n_actions, input_dims,
@@ -197,6 +197,9 @@ if __name__ == '__main__':
         if use_gpu:
             print("Using GPU")
             device = 'cuda:0'
+        else:
+            print("\nUsing CPU")
+            device = 'cpu'
     else:
         print("\nUsing CPU")
         device = 'cpu'
