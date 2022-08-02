@@ -262,7 +262,7 @@ if __name__ == '__main__':
 | Ties: {wins["tie"]}\n\
 ==========================\n')
 
-            wins = {'red': 0, 'blue': 0, 'tie': 0} # Reset the win history'
+            wins = {'red': 0, 'blue': 0, 'tie': 0} # Reset the win history
 
             # Visualize 1 game every 1000 trained games
             if env.total_games % 1000 == 0:
