@@ -12,20 +12,6 @@ cf = {
     'fps': 30 # Framerate that the visuals run at
 }
 
-# What device to use
-use_gpu = True
-if T.cuda.is_available():
-    print("\nGPU available")
-    if use_gpu:
-        print("Using GPU")
-        device = 'cuda:0'
-    else:
-        print("\nUsing CPU")
-        device = 'cpu'
-else:
-    print("\nUsing CPU")
-    device = 'cpu'
-
 GAMMA = 0.99
 LEARNING_RATE = 0.001
 EPS_MIN = 0.00

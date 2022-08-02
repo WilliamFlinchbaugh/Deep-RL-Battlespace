@@ -170,6 +170,21 @@ class Agent():
 
         self.decrement_epsilon()
 
+# What device to use
+use_gpu = True
+
+if T.cuda.is_available():
+    print("\nGPU available")
+    if use_gpu:
+        print("Using GPU")
+        device = 'cuda:0'
+    else:
+        print("\nUsing CPU")
+        device = 'cpu'
+else:
+    print("\nUsing CPU")
+    device = 'cpu'
+
 
 if __name__ == '__main__':
 
@@ -189,20 +204,6 @@ if __name__ == '__main__':
         'die_punishment': 0, # Punishment value for a plane dying
         'fps': 30 # Framerate that the visuals run at
     }
-    # What device to use
-    use_gpu = True
-
-    if T.cuda.is_available():
-        print("\nGPU available")
-        if use_gpu:
-            print("Using GPU")
-            device = 'cuda:0'
-        else:
-            print("\nUsing CPU")
-            device = 'cpu'
-    else:
-        print("\nUsing CPU")
-        device = 'cpu'
 
     GAMMA = 0.99
     LEARNING_RATE = 0.001
