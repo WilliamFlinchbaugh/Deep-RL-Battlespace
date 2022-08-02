@@ -63,11 +63,9 @@ class DuelingDeepQNetwork(nn.Module):
         return V, A
 
     def save_checkpoint(self):
-        print('... saving checkpoint ...')
         T.save(self.state_dict(), self.checkpoint_file)
 
     def load_checkpoint(self):
-        print('... loading checkpoint ...')
         self.load_state_dict(T.load(self.checkpoint_file))
 
 class Agent():
@@ -219,7 +217,7 @@ if __name__ == '__main__':
         'tie': 0
     }
 
-    print("\n=====================\n| STARTING TRAINING |\n=====================\n")
+    print("\n=====================\n| Starting Training |\n=====================\n")
     start = time.time() # Get the starting time
 
     for i in range(n_games):
@@ -247,15 +245,15 @@ if __name__ == '__main__':
 
             # Print out progress
             print(f'\n=========================\n\
-    | Current Time: {time.strftime("%H:%M:%S", time.gmtime(now))}\
-    | Elapsed Time: {time.strftime("%H:%M:%S", time.gmtime(elapsed))}\n\
-    | Games: {env.total_games}\n\
-    | Epsilon: {round(agents[env.possible_agents[0]].epsilon, 3)}\n\
-    | Timesteps: {timesteps_cntr}\n\
-    | Red Wins: {wins["red"]}\n\
-    | Blue Wins: {wins["blue"]}\n\
-    | Ties: {wins["tie"]}\n\
-    ==========================\n')
+| Current Time: {time.strftime("%H:%M:%S", time.gmtime(now))}\
+| Elapsed Time: {time.strftime("%H:%M:%S", time.gmtime(elapsed))}\n\
+| Games: {env.total_games}\n\
+| Epsilon: {round(agents[env.possible_agents[0]].epsilon, 3)}\n\
+| Timesteps: {timesteps_cntr}\n\
+| Red Wins: {wins["red"]}\n\
+| Blue Wins: {wins["blue"]}\n\
+| Ties: {wins["tie"]}\n\
+==========================\n')
 
             wins = {'red': 0, 'blue': 0, 'tie': 0} # Reset the win history'
 
@@ -264,6 +262,7 @@ if __name__ == '__main__':
                 env.show = True
 
             # Save models
+            print("\n=====================\n| Saving Models |\n=====================\n")
             for agent in agents.values():
                 agent.save_models()
 
