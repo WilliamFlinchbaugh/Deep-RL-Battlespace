@@ -252,7 +252,7 @@ if __name__ == '__main__':
 
             # Print out progress
             print(f'\n=========================\n\
-| Current Time: {time.strftime("%H:%M:%S", time.gmtime(now))}\n\
+| Current Time: {time.strftime("%I:%M %p", time.gmtime(now))}\n\
 | Elapsed Time: {time.strftime("%H:%M:%S", time.gmtime(elapsed))}\n\
 | Games: {env.total_games}\n\
 | Epsilon: {round(agents[env.possible_agents[0]].epsilon, 3)}\n\
