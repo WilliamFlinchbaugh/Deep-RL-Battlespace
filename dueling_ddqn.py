@@ -170,25 +170,25 @@ class Agent():
 
         self.decrement_epsilon()
 
-# Create a new folder for the model
-for i in range(1, 100):
-    if not os.path.exists(f'models/dueling_ddqn_{i}'):
-        FOLDER =  f'models/dueling_ddqn_{i}'
-        os.makedirs(FOLDER)
-        break
-
-cf = {
-    'n_agents': 2, # Number of planes on each team
-    'show': False, # Show visuals
-    'hit_base_reward': 1000, # Reward value for hitting enemy base
-    'hit_plane_reward': 30, # Reward value for hitting enemy plane
-    'miss_punishment': -1, # Punishment value for missing a shot
-    'die_punishment': 0, # Punishment value for a plane dying
-    'fps': 30 # Framerate that the visuals run at
-}
 
 if __name__ == '__main__':
 
+    # Create a new folder for the model
+    for i in range(1, 100):
+        if not os.path.exists(f'models/dueling_ddqn_{i}'):
+            FOLDER =  f'models/dueling_ddqn_{i}'
+            os.makedirs(FOLDER)
+            break
+
+    cf = {
+        'n_agents': 2, # Number of planes on each team
+        'show': False, # Show visuals
+        'hit_base_reward': 1000, # Reward value for hitting enemy base
+        'hit_plane_reward': 30, # Reward value for hitting enemy plane
+        'miss_punishment': -1, # Punishment value for missing a shot
+        'die_punishment': 0, # Punishment value for a plane dying
+        'fps': 30 # Framerate that the visuals run at
+    }
     # What device to use
     use_gpu = True
 
