@@ -191,7 +191,7 @@ if __name__ == '__main__':
     # Create a new folder for the model
     for i in range(1, 100):
         if not os.path.exists(f'models/dueling_ddqn_{i}'):
-            FOLDER =  f'models/dueling_ddqn_{i}'
+            FOLDER = f'models/dueling_ddqn_{i}'
             os.makedirs(FOLDER)
             break
 
