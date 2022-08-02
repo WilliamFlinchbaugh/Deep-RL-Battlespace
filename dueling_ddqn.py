@@ -170,6 +170,13 @@ class Agent():
 
         self.decrement_epsilon()
 
+# Create a new folder for the model
+for i in range(1, 100):
+    if not os.path.exists(f'models/dueling_ddqn_{i}'):
+        FOLDER =  f'models/dueling_ddqn_{i}'
+        os.makedirs(FOLDER)
+        break
+
 cf = {
     'n_agents': 2, # Number of planes on each team
     'show': False, # Show visuals
@@ -207,9 +214,9 @@ if __name__ == '__main__':
     agents = {}
     for agent_id in env.possible_agents:
         agents[agent_id] = Agent(GAMMA, 1.0, LEARNING_RATE, n_actions, [env.obs_size], 
-                    BUFFER_SIZE, BATCH_SIZE, agent_id, eps_min=EPS_MIN, eps_dec=EPS_DEC)
+                    BUFFER_SIZE, BATCH_SIZE, agent_id, eps_min=EPS_MIN, eps_dec=EPS_DEC, chkpt_dir=FOLDER)
 
-    n_games = 20000
+    n_games = 30000
     timesteps_cntr = 0
     wins = {
         'red': 0,
