@@ -200,10 +200,10 @@ if __name__ == '__main__':
         'n_agents': 2, # Number of planes on each team
         'show': False, # Show visuals
         'hit_base_reward': 1000, # Reward value for hitting enemy base
-        'hit_plane_reward': 30, # Reward value for hitting enemy plane
-        'miss_punishment': -1, # Punishment value for missing a shot
+        'hit_plane_reward': 50, # Reward value for hitting enemy plane
+        'miss_punishment': -2, # Punishment value for missing a shot
         'die_punishment': 0, # Punishment value for a plane dying
-        'fps': 30 # Framerate that the visuals run at
+        'fps': 20 # Framerate that the visuals run at
     }
 
     GAMMA = 0.99
@@ -251,7 +251,7 @@ if __name__ == '__main__':
         # Add outcome to wins
         wins[env.winner] += 1
 
-        if env.total_games % 3 == 0 and env.total_games > 0:
+        if env.total_games % 100 == 0 and env.total_games > 0:
             now = datetime.datetime.now()
             elapsed = now - start # Elapsed time in seconds
             central = timezone("US/Central")
