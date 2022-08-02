@@ -9,6 +9,7 @@ import os
 from pettingzoo import ParallelEnv
 from pettingzoo.utils import wrappers
 from pettingzoo.utils import parallel_to_aec
+import vidmaker
 os.environ['KMP_DUPLICATE_LIB_OK']='True' # Needed or else it sometimes causes issues on windows machines
 
 # Constants for pygame
@@ -584,6 +585,8 @@ class parallel_env(ParallelEnv, EzPickle):
         self.miss_punishment = miss_punishment
         self.die_punishment = die_punishment
         self.fps = fps
+        self.vid_path = "videos"
+        self.vid_cntr = 0
 
     def observation_space(self, agent):
         """Gets the observation space for a given agent
@@ -764,6 +767,7 @@ class parallel_env(ParallelEnv, EzPickle):
             self.dones = {agent: True for agent in self.possible_agents}
             self.env_done = True
 
+        # Check if blue won game
         if not self.team['red']['base'].alive:
             self.winner = 'blue'
             self.team['blue']['wins'] += 1
@@ -837,6 +841,15 @@ class parallel_env(ParallelEnv, EzPickle):
                 textRect = text.get_rect()
                 textRect.center = (DISP_WIDTH//2, DISP_HEIGHT//2)
             self.display.blit(text, textRect)
+            pygame.display.update()
+            self.video.update(pygame.surfarray.pixels3d(self.display).swapaxes(0, 1))
+
+            if self.fps <= 60:
+                for i in range(20):
+                    self.video.update(pygame.surfarray.pixels3d(self.display).swapaxes(0, 1))
+                pygame.time.wait(500)
+            self.video.export()
+            self.rendering = False
 
     def wins(self):
         """Gives a nice output of the wins for each team and the winrate of the red team
@@ -859,6 +872,9 @@ class parallel_env(ParallelEnv, EzPickle):
         # Just to ensure it won't render if self.show == False
         if not self.show: return
 
+        if not os.path.exists(self.vid_path):
+            os.mkdir(self.vid_path)
+
         if not self.rendering: # We need to initialize everything if not yet rendering
             self.rendering = True
             pygame.display.init()
@@ -868,7 +884,12 @@ class parallel_env(ParallelEnv, EzPickle):
             self.clock = pygame.time.Clock()
             if self.fps <= 60:
                 pygame.time.wait(500)
-            
+            while os.path.exists(f"{self.vid_path}/video_{self.vid_cntr}.mp4"):
+                self.vid_cntr += 1
+            self.file_name = f"{self.vid_path}/video_{self.vid_cntr}.mp4"
+            self.video = vidmaker.Video(path=self.file_name, fps=self.fps, resolution=(DISP_WIDTH, DISP_HEIGHT))
+            self.vid_cntr += 1
+
         # Check if we should quit
         for event in pygame.event.get():
             if event.type == KEYDOWN:
@@ -905,10 +926,8 @@ class parallel_env(ParallelEnv, EzPickle):
         # Calls winner screen if done
         if self.winner != 'none':
             self.winner_screen()
-            pygame.display.update()
-            if self.fps <= 60:
-                pygame.time.wait(500)
 
         # Update the display and tick the clock with the framerate
+        self.video.update(pygame.surfarray.pixels3d(self.display).swapaxes(0, 1))
         pygame.display.update()
         self.clock.tick(self.fps)
