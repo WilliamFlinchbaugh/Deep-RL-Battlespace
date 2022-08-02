@@ -5,7 +5,8 @@ import torch.optim as optim
 import os
 import numpy as np
 import battle_v1
-import time
+import datetime
+from pytz import timezone
 
 class ReplayBuffer():
     def __init__(self, max_size, input_shape):
@@ -229,7 +230,7 @@ if __name__ == '__main__':
     }
 
     print("\n=====================\n| Starting Training |\n=====================\n")
-    start = time.time() # Get the starting time
+    start = datetime.datetime.now()
 
     for i in range(n_games):
         obs = env.reset()
@@ -250,14 +251,19 @@ if __name__ == '__main__':
         # Add outcome to wins
         wins[env.winner] += 1
 
-        if env.total_games % 100 == 0 and env.total_games > 0:
-            now = time.time()
+        if env.total_games % 3 == 0 and env.total_games > 0:
+            now = datetime.datetime.now()
             elapsed = now - start # Elapsed time in seconds
-
+            central = timezone("US/Central")
+            time_now = now.astimezone(central)
+            s = elapsed.total_seconds()
+            hours, remainder = divmod(s, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            formatted_elapsed = '{:02}:{:02}:{:02}'.format(int(hours), int(minutes), int(seconds))
             # Print out progress
             print(f'\n=========================\n\
-| Current Time: {time.strftime("%I:%M %p", time.gmtime(now))}\n\
-| Elapsed Time: {time.strftime("%H:%M:%S", time.gmtime(elapsed))}\n\
+| Current Time: {now.strftime("%I:%M %p")}\n\
+| Elapsed Time: {formatted_elapsed}\n\
 | Games: {env.total_games}\n\
 | Epsilon: {round(agents[env.possible_agents[0]].epsilon, 3)}\n\
 | Timesteps: {timesteps_cntr}\n\
