@@ -255,7 +255,7 @@ if __name__ == '__main__':
 
             # Print out progress
             print(f'\n=========================\n\
-| Current Time: {time.strftime("%H:%M:%S", time.gmtime(now))}\
+| Current Time: {time.strftime("%I:%M %p", time.gmtime(now))}\n\
 | Elapsed Time: {time.strftime("%H:%M:%S", time.gmtime(elapsed))}\n\
 | Games: {env.total_games}\n\
 | Epsilon: {round(agents[env.possible_agents[0]].epsilon, 3)}\n\
@@ -265,14 +265,14 @@ if __name__ == '__main__':
 | Ties: {wins["tie"]}\n\
 ==========================\n')
 
-            wins = {'red': 0, 'blue': 0, 'tie': 0} # Reset the win history'
+            wins = {'red': 0, 'blue': 0, 'tie': 0} # Reset the win history
 
             # Visualize 1 game every 1000 trained games
             if env.total_games % 1000 == 0:
                 env.show = True
 
             # Save models
-            print("\n=====================\n| Saving Models |\n=====================\n")
+            print("\n=================\n| Saving Models |\n=================\n")
             for agent in agents.values():
                 agent.save_models()
 
