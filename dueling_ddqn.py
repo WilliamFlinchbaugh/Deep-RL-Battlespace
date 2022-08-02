@@ -175,11 +175,11 @@ class Agent():
 cf = {
     'n_agents': 2, # Number of planes on each team
     'show': False, # Show visuals
-    'hit_base_reward': 10, # Reward value for hitting enemy base
-    'hit_plane_reward': 1, # Reward value for hitting enemy plane
-    'miss_punishment': 0, # Punishment value for missing a shot
+    'hit_base_reward': 1000, # Reward value for hitting enemy base
+    'hit_plane_reward': 30, # Reward value for hitting enemy plane
+    'miss_punishment': -1, # Punishment value for missing a shot
     'die_punishment': 0, # Punishment value for a plane dying
-    'fps': 60 # Framerate that the visuals run at
+    'fps': 30 # Framerate that the visuals run at
 }
 
 if __name__ == '__main__':
@@ -199,7 +199,7 @@ if __name__ == '__main__':
     GAMMA = 0.99
     LEARNING_RATE = 0.001
     EPS_MIN = 0.05
-    EPS_DEC = 8e-7
+    EPS_DEC = 2e-7
     BUFFER_SIZE = 100000
     BATCH_SIZE = 32
 
@@ -211,7 +211,7 @@ if __name__ == '__main__':
         agents[agent_id] = Agent(GAMMA, 1.0, LEARNING_RATE, n_actions, [env.obs_size], 
                     BUFFER_SIZE, BATCH_SIZE, agent_id, eps_min=EPS_MIN, eps_dec=EPS_DEC)
 
-    n_games = 30000
+    n_games = 20000
     timesteps_cntr = 0
     wins = {
         'red': 0,
@@ -247,6 +247,7 @@ if __name__ == '__main__':
 
             # Print out progress
             print(f'\n=========================\n\
+    | Current Time: {time.strftime("%H:%M:%S", time.gmtime(now))}\
     | Elapsed Time: {time.strftime("%H:%M:%S", time.gmtime(elapsed))}\n\
     | Games: {env.total_games}\n\
     | Epsilon: {round(agents[env.possible_agents[0]].epsilon, 3)}\n\
