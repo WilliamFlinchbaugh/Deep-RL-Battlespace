@@ -14,8 +14,8 @@ BATCH_SIZE = 32
 
 # Create a new folder for the model
 for i in range(1, 100):
-    if not os.path.exists(f'{ALGORITHM}_{i}'):
-        FOLDER = f'{ALGORITHM}_{i}'
+    if not os.path.exists(f'models/{ALGORITHM}_{i}'):
+        FOLDER = f'models/{ALGORITHM}_{i}'
         os.makedirs(FOLDER)
         break
 
