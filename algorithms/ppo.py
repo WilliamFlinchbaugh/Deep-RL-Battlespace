@@ -116,6 +116,7 @@ class Agent:
         self.gae_lambda = gae_lambda
 
         chkpt_name = chkpt_dir + "/" + name
+        if not os.path.exists(chkpt_name): os.mkdir(chkpt_name)
         self.actor = ActorNetwork(n_actions, input_dims, alpha, chkpt_dir=chkpt_name)
         self.critic = CriticNetwork(input_dims, alpha, chkpt_dir=chkpt_name)
         self.memory = PPOMemory(batch_size)
