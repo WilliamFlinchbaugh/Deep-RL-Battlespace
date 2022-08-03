@@ -96,3 +96,27 @@ def train(env, n_games=10000):
             env.close()
 
     env.close()
+
+def evaluate(env, model_path, eval_games=10):
+    n_actions = env.n_actions
+
+    agents = {}
+    for agent_id in env.possible_agents:
+        agents[agent_id] = Agent(n_actions, [env.obs_size], GAMMA, ALPHA, GAE_LAMBDA,
+                    POLICY_CLIP, BATCH_SIZE, N_EPOCHS, chkpt_dir=model_path, name=agent_id)
+        agents[agent_id].load_models()
+
+    for i in range(eval_games):
+        obs = env.reset()
+
+        while not env.env_done:
+            alive_agents = env.agents
+            actions = {}
+            for agent in alive_agents:
+                actions[agent], prob_, val_ = agents[agent].choose_action(obs[agent])
+
+            obs_, rewards, dones, info = env.step(actions)
+
+            obs = obs_
+
+    env.close()

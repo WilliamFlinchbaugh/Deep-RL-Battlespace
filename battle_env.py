@@ -114,10 +114,10 @@ class Plane(pygame.sprite.Sprite):
         self.color = RED if self.team == 'red' else BLUE
         self.image = pygame.image.load(f"assets/{team}_plane.png")
         self.w, self.h = self.image.get_size()
-        self.xmin = self.w / 2
-        self.xmax = DISP_WIDTH - (self.w / 2)
-        self.ymin = self.h / 2
-        self.ymax = DISP_HEIGHT - (self.h / 2)
+        self.xmin = int(self.w)
+        self.xmax = int(DISP_WIDTH - self.w)
+        self.ymin = int(self.h)
+        self.ymax = int(DISP_HEIGHT - self.h)
         self.direction = 0
         self.rect = self.image.get_rect()
         self.max_hp = hp
@@ -133,26 +133,16 @@ class Plane(pygame.sprite.Sprite):
         self.hp = self.max_hp
         self.alive = True
         if self.team == 'red':
-            x = self.xmax/3 * random.random()
-            y = self.ymax * random.random()
+            x = random.randint(self.xmin, self.xmax // 3)
+            y = random.randint(self.ymin, self.ymax)
             self.rect.center = (x, y)
-            self.direction = 180 * random.random() + 270
+            self.direction = random.randint(270, 450)
             if self.direction >= 360: self.direction -= 360
         else:
-            x = self.xmax/3 * random.random() + (2 * self.xmax) / 3
-            y = self.ymax * random.random()
+            x = random.randint(self.xmax // 3 * 2, self.xmax)
+            y = random.randint(self.ymin, self.ymax)
             self.rect.center = (x, y)
-            self.direction = 90 * random.random() + 180
-        
-        # Keep player on the screen
-        if self.rect.left < 0:
-            self.rect.left = 0
-        if self.rect.right > DISP_WIDTH:
-            self.rect.right = DISP_WIDTH
-        if self.rect.top <= 0:
-            self.rect.top = 0
-        if self.rect.bottom >= DISP_HEIGHT:
-            self.rect.bottom = DISP_HEIGHT
+            self.direction = random.randint(90, 270)
         
     def rotate(self, angle):
         """Rotates the plane by adding to self.direction
@@ -280,10 +270,10 @@ class Base(pygame.sprite.Sprite):
         self.color = RED if self.team == 'red' else BLUE
         self.image = pygame.image.load(f"assets/{team}_base.png")
         self.w, self.h = self.image.get_size()
-        self.xmin = self.w / 2
-        self.xmax = DISP_WIDTH - (self.w / 2)
-        self.ymin = self.h / 2
-        self.ymax = DISP_HEIGHT - (self.h / 2)
+        self.xmin = int(self.w)
+        self.xmax = int(DISP_WIDTH - self.w)
+        self.ymin = int(self.h)
+        self.ymax = int(DISP_HEIGHT - self.h)
         self.rect = self.image.get_rect()
         self.max_hp = hp
         self.hp = self.max_hp
@@ -298,12 +288,12 @@ class Base(pygame.sprite.Sprite):
         self.alive = True
         self.hp = self.max_hp
         if self.team == 'red':
-            x = self.xmax/3 * random.random() + self.xmin
-            y = self.ymax * random.random() + self.ymin
+            x = random.randint(self.xmin, self.xmax // 3)
+            y = random.randint(self.ymin, self.ymax)
             self.rect.center = (x, y)
         else:
-            x = self.xmax/3 * random.random() + (2 * self.xmax) / 3
-            y = self.ymax * random.random()
+            x = random.randint(self.xmax // 3 * 2, self.xmax)
+            y = random.randint(self.ymin, self.ymax)
             self.rect.center = (x, y)
 
     def hit(self):
