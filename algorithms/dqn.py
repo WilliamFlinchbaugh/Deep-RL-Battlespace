@@ -3,13 +3,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
-import battle_v1
-import time
+import os
 
 class DeepQNetwork(nn.Module):
     def __init__(self, lr, input_dims, fc1_dims, fc2_dims,
-                 n_actions):
+                 n_actions, chkpt_dir, name):
         super(DeepQNetwork, self).__init__()
+        self.checkpoint_dir = chkpt_dir
+        self.checkpoint_file = os.path.join(self.checkpoint_dir, name)
         self.input_dims = input_dims
         self.fc1_dims = fc1_dims
         self.fc2_dims = fc2_dims
@@ -19,7 +20,7 @@ class DeepQNetwork(nn.Module):
         self.fc3 = nn.Linear(self.fc2_dims, self.n_actions)
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
         self.loss = nn.MSELoss()
-        self.device = T.device(device)
+        self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
         self.to(self.device)
 
     def forward(self, state):
@@ -29,23 +30,30 @@ class DeepQNetwork(nn.Module):
 
         return actions
 
+    def save_checkpoint(self):
+        T.save(self.state_dict(), self.checkpoint_file)
+
+    def load_checkpoint(self):
+        self.load_state_dict(T.load(self.checkpoint_file, map_location=self.device))
+
 class Agent:
-    def __init__(self, gamma, epsilon, lr, input_dims, batch_size, n_actions,
-                 max_mem_size=100000, eps_end=0.05, eps_dec=5e-4):
+    def __init__(self, gamma, epsilon, lr, n_actions, input_dims,
+                 mem_size, batch_size, agent_id, eps_min=0.01, eps_dec=5e-7,
+                 replace=1000, chkpt_dir='tmp'):
         self.gamma = gamma
         self.epsilon = epsilon
-        self.eps_min = eps_end
+        self.eps_min = eps_min
         self.eps_dec = eps_dec
         self.lr = lr
         self.action_space = [i for i in range(n_actions)]
-        self.mem_size = max_mem_size
+        self.mem_size = mem_size
         self.batch_size = batch_size
         self.mem_cntr = 0
         self.iter_cntr = 0
         self.replace_target = 100
 
         self.Q_eval = DeepQNetwork(lr, n_actions=n_actions,
-                    input_dims=input_dims, fc1_dims=256, fc2_dims=256)
+            input_dims=input_dims, fc1_dims=256, fc2_dims=256, name=agent_id, chkpt_dir=chkpt_dir)
         self.state_memory = np.zeros((self.mem_size, *input_dims), dtype=np.float32)
         self.new_state_memory = np.zeros((self.mem_size, *input_dims), dtype=np.float32)
         self.action_memory = np.zeros(self.mem_size, dtype=np.int32)
@@ -108,98 +116,3 @@ class Agent:
 
     def ready(self):
         return self.mem_cntr >= self.batch_size
-
-cf = {
-    'n_agents': 2, # Number of planes on each team
-    'show': False, # Show visuals
-    'hit_base_reward': 5, # Reward value for hitting enemy base
-    'hit_plane_reward': 1, # Reward value for hitting enemy plane
-    'miss_punishment': 0, # Punishment value for missing a shot
-    'die_punishment': 0, # Punishment value for a plane dying
-    'fps': 60 # Framerate that the visuals run at
-}
-
-# What device to use
-use_gpu = True
-
-if T.cuda.is_available():
-    print("\nGPU available")
-    if use_gpu:
-        print("Using GPU")
-        device = 'cuda:0'
-else:
-    print("\nUsing CPU")
-    device = 'cpu'
-
-GAMMA = 0.99
-LEARNING_RATE = .01
-EPS_START = 1.0
-EPS_END = 0.05
-EPS_DEC = 8e-7
-BATCH_SIZE = 64
-
-env = battle_v1.parallel_env(**cf)
-n_actions = env.n_actions
-
-agents = {}
-for agent_id in env.possible_agents:
-    agents[agent_id] = Agent(GAMMA, EPS_START, LEARNING_RATE, [env.obs_size], 
-                BATCH_SIZE, n_actions, eps_end=EPS_END, eps_dec=EPS_DEC)
-
-n_games = 100000
-timesteps_cntr = 0
-wins = {
-    'red': 0,
-    'blue': 0,
-    'tie': 0
-}
-
-print("\n=====================\n| STARTING TRAINING |\n=====================\n")
-start = time.time() # Get the starting time
-
-for i in range(n_games):
-    obs = env.reset()
-
-    while not env.env_done:
-        timesteps_cntr += 1
-        alive_agents = env.agents
-        actions = {}
-        for agent in alive_agents:
-            actions[agent] = agents[agent].choose_action(obs[agent])
-        obs_, rewards, dones, info = env.step(actions)
-        for agent in alive_agents:
-            agents[agent].store_transition(obs[agent], actions[agent],
-                            rewards[agent], obs_[agent], dones[agent])
-            agents[agent].learn()
-        obs = obs_
-
-    # Add outcome to wins
-    wins[env.winner] += 1
-
-    if env.total_games % 100 == 0 and env.total_games > 0:
-        now = time.time()
-        elapsed = now - start # Elapsed time in seconds
-
-        # Print out progress
-        print(f'\n=========================\n\
-| Elapsed Time: {time.strftime("%H:%M:%S", time.gmtime(elapsed))}\n\
-| Games: {env.total_games}\n\
-| Epsilon: {round(agents[env.possible_agents[0]].epsilon, 3)}\n\
-| Timesteps: {timesteps_cntr}\n\
-| Red Wins: {wins["red"]}\n\
-| Blue Wins: {wins["blue"]}\n\
-| Ties: {wins["tie"]}\n\
-==========================\n')
-
-        wins = {'red': 0, 'blue': 0, 'tie': 0} # Reset the win history
-        env.show = True # Evaluate one game
-    elif env.show:
-        env.show = False
-        env.close()
-
-env.close()
-
-# Save the models
-for agent_id, agent in agents.items():
-    path = f"models/{agent_id}.pt"
-    T.save(agent.Q_eval.state_dict(), path)

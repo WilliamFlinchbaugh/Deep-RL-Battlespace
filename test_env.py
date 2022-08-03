@@ -1,4 +1,4 @@
-import battle_v1
+import battle_env
 
 cf = {
     'n_agents': 2, # Number of planes on each team
@@ -10,7 +10,7 @@ cf = {
     'fps': 15 # Framerate that the visuals run at
 }
 
-env = battle_v1.parallel_env(**cf)
+env = battle_env.parallel_env(**cf)
 
 for _ in range(5):
     observations = env.reset()

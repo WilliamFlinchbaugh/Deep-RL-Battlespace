@@ -1,6 +1,6 @@
-from dueling_ddqn import Agent
+from algorithms.dueling_ddqn import Agent
 import torch as T
-import battle_v1
+import battle_env
 
 cf = {
     'n_agents': 2, # Number of planes on each team
@@ -19,7 +19,7 @@ EPS_DEC = 8e-7
 BUFFER_SIZE = 100000
 BATCH_SIZE = 32
 
-env = battle_v1.parallel_env(**cf)
+env = battle_env.parallel_env(**cf)
 n_actions = env.n_actions
 
 agents = {}
