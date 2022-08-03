@@ -4,8 +4,8 @@ import datetime
 from pytz import timezone
 from algorithms import dqn, dueling_ddqn
 
-# Implemented algorithms: dqn, dueling_dqn
-ALGORITHM = 'dueling_dqn'
+# Implemented algorithms: dqn, dueling_ddqn
+ALGORITHM = 'dueling_ddqn'
 
 GAMMA = 0.99
 LEARNING_RATE = 0.001
