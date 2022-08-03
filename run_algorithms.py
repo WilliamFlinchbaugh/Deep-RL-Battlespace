@@ -14,7 +14,7 @@ algorithm = algorithms[ALGORITHM]
 
 cf = {
     'n_agents': 2, # Number of planes on each team
-    'show': True, # Show visuals
+    'show': False, # Show visuals
     'hit_base_reward': 100, # Reward value for hitting enemy base
     'hit_plane_reward': 10, # Reward value for hitting enemy plane
     'miss_punishment': -2, # Punishment value for missing a shot
