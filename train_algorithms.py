@@ -2,7 +2,7 @@ import battle_env
 from algorithms import train_dqn, train_dueling_ddqn, train_ppo
 
 # Implemented algorithms: dqn, dueling_ddqn, ppo
-ALGORITHM = 'ppo'
+ALGORITHM = 'dueling_ddqn'
 
 algorithms = {
     'dqn':train_dqn,
@@ -24,4 +24,4 @@ cf = {
 
 env = battle_env.parallel_env(**cf)
 
-algorithm.train(env=env, n_games=30000)
+algorithm.train(env=env, n_games=50000)
