@@ -477,7 +477,7 @@ class parallel_env(ParallelEnv, EzPickle):
         "name": "battle_env_v1"
     }
 
-    def __init__(self, n_agents=1, show=False, hit_base_reward=10, hit_plane_reward=2, miss_punishment=0, die_punishment=-3, fps=20, record=False, vid_path=None, **kwargs):
+    def __init__(self, n_agents=1, show=False, hit_base_reward=10, hit_plane_reward=2, miss_punishment=0, die_punishment=-3, fps=20, **kwargs):
         """Initializes values, observation spaces, action spaces, etc.
 
         Args:
@@ -576,9 +576,7 @@ class parallel_env(ParallelEnv, EzPickle):
         self.miss_punishment = miss_punishment
         self.die_punishment = die_punishment
         self.fps = fps
-        self.record = record # If we should record videos of visualization
-        self.vid_path = vid_path # Path to save videos to
-        self.vid_cntr = 1
+        self.recording = False
 
     def observation_space(self, agent):
         """Gets the observation space for a given agent
@@ -834,17 +832,12 @@ class parallel_env(ParallelEnv, EzPickle):
                 textRect.center = (DISP_WIDTH//2, DISP_HEIGHT//2)
             self.display.blit(text, textRect)
             pygame.display.update()
-            if self.record:
-                self.video.update(cv2.cvtColor(pygame.surfarray.pixels3d(self.display).swapaxes(0, 1), cv2.COLOR_BGR2RGB))
 
             if self.fps <= 60:
-                if self.record:
+                pygame.time.wait(500) # Pause the last frame
+                if self.recording:
                     for _ in range(15): # Pause the last frame of video for like a second
                         self.video.update(cv2.cvtColor(pygame.surfarray.pixels3d(self.display).swapaxes(0, 1), cv2.COLOR_BGR2RGB))
-                pygame.time.wait(500) # Pause the last frame
-            if self.record:
-                self.video.export() # Export the video
-            self.rendering = False
 
     def wins(self):
         """Gives a nice output of the wins for each team and the winrate of the red team
@@ -865,11 +858,9 @@ class parallel_env(ParallelEnv, EzPickle):
         Renders the pygame visuals
         """
         # Just to ensure it won't render if self.show == False
-        if not self.show: return
-
-        if self.record:
-            if not os.path.exists(self.vid_path):
-                os.mkdir(self.vid_path)
+        if not self.show: 
+            self.rendering = False
+            return
 
         if not self.rendering: # We need to initialize everything if not yet rendering
             self.rendering = True
@@ -880,12 +871,6 @@ class parallel_env(ParallelEnv, EzPickle):
             self.clock = pygame.time.Clock()
             if self.fps <= 60:
                 pygame.time.wait(500)
-            if self.record:
-                while os.path.exists(f"{self.vid_path}/video_{self.vid_cntr}.mp4"):
-                    self.vid_cntr += 1
-                self.file_name = f"{self.vid_path}/video_{self.vid_cntr}.mp4"
-                self.video = vidmaker.Video(path=self.file_name, fps=self.fps, resolution=(DISP_WIDTH, DISP_HEIGHT))
-                self.vid_cntr += 1
 
         # Check if we should quit
         for event in pygame.event.get():
@@ -925,7 +910,15 @@ class parallel_env(ParallelEnv, EzPickle):
             self.winner_screen()
 
         # Update the display, update the video, and tick the clock with the framerate
-        if self.record:
+        if self.recording:
             self.video.update(cv2.cvtColor(pygame.surfarray.pixels3d(self.display).swapaxes(0, 1), cv2.COLOR_BGR2RGB))
         pygame.display.update()
         self.clock.tick(self.fps)
+
+    def start_recording(self, path):
+        self.recording = True
+        self.video = vidmaker.Video(path, fps=self.fps, resolution=(DISP_WIDTH, DISP_HEIGHT))
+    
+    def export_video(self):
+        self.recording = False
+        self.video.export()
