@@ -14,9 +14,9 @@ algorithm = algorithms[ALGORITHM]
 
 cf = {
     'n_agents': 2, # Number of planes on each team
-    'show': False, # Show visuals
-    'hit_base_reward': 1000, # Reward value for hitting enemy base
-    'hit_plane_reward': 50, # Reward value for hitting enemy plane
+    'show': True, # Show visuals
+    'hit_base_reward': 100, # Reward value for hitting enemy base
+    'hit_plane_reward': 10, # Reward value for hitting enemy plane
     'miss_punishment': -2, # Punishment value for missing a shot
     'die_punishment': 0, # Punishment value for a plane dying
     'fps': 20 # Framerate that the visuals run at
@@ -24,5 +24,5 @@ cf = {
 
 env = battle_env.parallel_env(**cf)
 
-algorithm.train(env=env, n_games=50000)
+algorithm.train(env=env, n_games=20000)
 algorithm.evaluate(env=env, model_path='models/ppo_5', eval_games=10)
