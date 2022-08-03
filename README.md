@@ -28,10 +28,12 @@ There was a small effort on a Unity game (not in repo) because Unity’s ML-Agen
  
 I started writing a custom MADDPG model based on a tutorial (listed below) and it runs, but doesn’t seem to learn much. It’s a bit janky since DDPG is meant for continuous action spaces. I also created a DQN model for multi-agent that seems to work, but has to train for a really really long time. Since it’s DQN, the agents might not learn to collaborate.
  
-I just started using a dueling DDQN model for the agents which seems to actually be giving decent results. It’s essentially just a torch model that I stole from ML with Phil. Link is below.
+I just started using a dueling DDQN model for the agents which seems to actually be giving decent results. It’s essentially just a torch model that I stole from ML with Phil. Each agent has its own DDQN model which means it is completely decentralized. I also implemented a PPO model which takes much longer to run, however the agents converge 4x quicker. In the future, we will want some sort of semi-centralized system where the agents on the same team will share rewards so that they will collaborate. Right now the agents are completely decentralized.
+ 
+I made the process for training and evaluating incredibly simple now. You literally just go into the run_algorithms.py, pick whichever algorithm you want, and hit run. You can change the number of games that it will run for. You can change the reward values and stuff from that file too. We might want to add more algorithms to that like A3C (Phil has an A3C model that we could rip)
  
 # Steps going forwards:
-Custom multi-agent torch model to replace stable baselines (Possibly PPO? DDQN is somewhat working, but actor critic is likely best for collaboration)
+A semi-centralized model where the agents on each team share rewards in order to promote collaboration
  
 Larger state space (including friendly plane information)
  
@@ -122,12 +124,10 @@ Here’s the paper that this video covers:
  
 https://arxiv.org/pdf/1706.02275.pdf
  
-The same guy, Machine Learning with Phil, also made the DQN and Dueling DDQN that I used with MARL. Here are the links to the videos and the code:
+The same guy, Machine Learning with Phil, also made the DQN, Dueling DDQN, and PPO that I used with MARL. Here are the links to his channel and the repo that has the algorithms I used:
  
 https://www.youtube.com/watch?v=H9uCYnG3LlE
  
 https://www.youtube.com/watch?v=wc-FxNENg9U
  
-https://github.com/philtabor/Youtube-Code-Repository/blob/master/ReinforcementLearning/DeepQLearning/simple_dqn_torch_2020.py
- 
-https://github.com/philtabor/Youtube-Code-Repository/blob/master/ReinforcementLearning/DeepQLearning/dueling_ddqn_torch.py
+https://github.com/philtabor/Youtube-Code-Repository/tree/master/ReinforcementLearning
