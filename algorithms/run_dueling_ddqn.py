@@ -91,6 +91,7 @@ def train(env, n_games=10000):
     env.close()
 
 def evaluate(env, model_path, eval_games=10):
+    env.show = True
     n_actions = env.n_actions
 
     agents = {}
