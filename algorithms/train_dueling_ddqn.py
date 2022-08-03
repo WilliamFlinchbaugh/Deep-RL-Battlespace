@@ -5,7 +5,7 @@ from algorithms.dueling_ddqn import Agent
 GAMMA = 0.99
 LEARNING_RATE = 0.001
 EPS_MIN = 0.05
-EPS_DEC = 2e-7
+EPS_DEC = 5e-7
 BUFFER_SIZE = 100000
 BATCH_SIZE = 32
 

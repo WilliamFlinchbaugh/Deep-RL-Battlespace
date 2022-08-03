@@ -15,7 +15,7 @@ env = battle_env.parallel_env(**cf)
 for _ in range(5):
     observations = env.reset()
     actions = {}
-    while not env.env.env_done:
+    while not env.env_done:
         for agent in env.agents:
             actions[agent] = env.action_space(agent).sample()
         observations, rewards, dones, infos = env.step(actions)
