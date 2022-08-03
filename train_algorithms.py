@@ -1,7 +1,7 @@
 import battle_env
 from algorithms import train_dqn, train_dueling_ddqn, train_ppo
 
-# Implemented algorithms: dqn, dueling_ddqn
+# Implemented algorithms: dqn, dueling_ddqn, ppo
 ALGORITHM = 'ppo'
 
 algorithms = {
