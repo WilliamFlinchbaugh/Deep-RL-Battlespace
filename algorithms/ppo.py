@@ -5,6 +5,8 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions.categorical import Categorical
 
+threads_to_use = T.get_num_threads() // 2 
+T.set_num_threads(threads_to_use)
 class PPOMemory:
     def __init__(self, batch_size):
         self.states = []
@@ -195,3 +197,4 @@ class Agent:
                 self.critic.optimizer.step()
 
         self.memory.clear_memory()         
+

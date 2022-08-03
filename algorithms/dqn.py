@@ -116,3 +116,6 @@ class Agent:
 
     def ready(self):
         return self.mem_cntr >= self.batch_size
+
+threads_to_use = T.get_num_threads() // 2 
+T.set_num_threads(threads_to_use)
