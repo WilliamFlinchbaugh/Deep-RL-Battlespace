@@ -1,6 +1,5 @@
-import train_dqn
-import train_dueling_ddqn
-import train_ppo
+import battle_env
+from algorithms import train_dqn, train_dueling_ddqn, train_ppo
 
 # Implemented algorithms: dqn, dueling_ddqn
 ALGORITHM = 'ppo'
@@ -23,4 +22,6 @@ cf = {
     'fps': 20 # Framerate that the visuals run at
 }
 
-algorithm.train(config=cf, n_games=30000)
+env = battle_env.parallel_env(**cf)
+
+algorithm.train(env=env, n_games=30000)

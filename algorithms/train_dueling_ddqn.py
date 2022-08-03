@@ -1,8 +1,6 @@
-import battle_env
 import os
 import datetime
-from pytz import timezone
-from algorithms import dqn
+from dueling_ddqn import Agent
 
 GAMMA = 0.99
 LEARNING_RATE = 0.001
@@ -11,20 +9,19 @@ EPS_DEC = 2e-7
 BUFFER_SIZE = 100000
 BATCH_SIZE = 32
 
-def train(config={}, n_games=10000):
+def train(env, n_games=10000):
     # Create a new folder for the model
     for i in range(1, 100):
-        if not os.path.exists(f'models/dqn_{i}'):
-            FOLDER = f'models/dqn_{i}'
+        if not os.path.exists(f'models/dueling_ddqn_{i}'):
+            FOLDER = f'models/dueling_ddqn_{i}'
             os.makedirs(FOLDER)
             break
 
-    env = battle_env.parallel_env(**config)
     n_actions = env.n_actions
 
     agents = {}
     for agent_id in env.possible_agents:
-        agents[agent_id] = dqn.Agent(GAMMA, 1.0, LEARNING_RATE, n_actions, [env.obs_size], 
+        agents[agent_id] = Agent(GAMMA, 1.0, LEARNING_RATE, n_actions, [env.obs_size], 
                     BUFFER_SIZE, BATCH_SIZE, agent_id, eps_min=EPS_MIN, eps_dec=EPS_DEC, chkpt_dir=FOLDER)
 
     timesteps_cntr = 0
@@ -44,18 +41,13 @@ def train(config={}, n_games=10000):
             timesteps_cntr += 1
             alive_agents = env.agents
             actions = {}
-
             for agent in alive_agents:
                 actions[agent] = agents[agent].choose_action(obs[agent])
-
             obs_, rewards, dones, info = env.step(actions)
-
             for agent in alive_agents:
                 agents[agent].store_transition(obs[agent], actions[agent],
                                 rewards[agent], obs_[agent], dones[agent])
-
                 agents[agent].learn()
-
             obs = obs_
 
         # Add outcome to wins
