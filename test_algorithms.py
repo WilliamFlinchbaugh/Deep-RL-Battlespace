@@ -1,13 +1,13 @@
 import battle_env
-from algorithms import dqn, dueling_ddqn, ppo
+from algorithms import eval_dqn, eval_dueling_ddqn, eval_ppo
 
 # Implemented algorithms: dqn, dueling_ddqn, ppo
 ALGORITHM = 'dueling_ddqn'
 
 algorithms = {
-    'dqn':dqn,
-    'dueling_ddqn':dueling_ddqn,
-    'ppo':ppo
+    'dqn':eval_dqn,
+    'dueling_ddqn':eval_dueling_ddqn,
+    'ppo':eval_ppo
 }
 
 algorithm = algorithms[ALGORITHM]
