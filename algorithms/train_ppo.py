@@ -74,7 +74,6 @@ def train(env, n_games=10000):
     | Current Time: {now.strftime("%I:%M %p")}\n\
     | Elapsed Time: {formatted_elapsed}\n\
     | Games: {env.total_games}\n\
-    | Epsilon: {round(agents[env.possible_agents[0]].epsilon, 3)}\n\
     | Timesteps: {timesteps_cntr}\n\
     | Red Wins: {wins["red"]}\n\
     | Blue Wins: {wins["blue"]}\n\
