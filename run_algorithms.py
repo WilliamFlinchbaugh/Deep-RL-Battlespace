@@ -1,20 +1,20 @@
 import battle_env
-from algorithms import eval_dqn, eval_dueling_ddqn, eval_ppo
+from algorithms import run_dueling_ddqn, run_ppo, run_dqn
 
 # Implemented algorithms: dqn, dueling_ddqn, ppo
-ALGORITHM = 'dueling_ddqn'
+ALGORITHM = 'ppo'
 
 algorithms = {
-    'dqn':eval_dqn,
-    'dueling_ddqn':eval_dueling_ddqn,
-    'ppo':eval_ppo
+    'dqn':run_dqn,
+    'dueling_ddqn':run_dueling_ddqn,
+    'ppo':run_ppo
 }
 
 algorithm = algorithms[ALGORITHM]
 
 cf = {
     'n_agents': 2, # Number of planes on each team
-    'show': True, # Show visuals
+    'show': False, # Show visuals
     'hit_base_reward': 1000, # Reward value for hitting enemy base
     'hit_plane_reward': 50, # Reward value for hitting enemy plane
     'miss_punishment': -2, # Punishment value for missing a shot
@@ -24,4 +24,5 @@ cf = {
 
 env = battle_env.parallel_env(**cf)
 
-algorithm.train(env=env, eval_games=10)
+algorithm.train(env=env, n_games=50000)
+algorithm.evaluate(env=env, model_path='models/ppo_5', eval_games=10)

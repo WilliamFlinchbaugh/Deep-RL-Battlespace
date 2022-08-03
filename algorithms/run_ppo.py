@@ -1,19 +1,19 @@
 import os
 import datetime
-from algorithms.dueling_ddqn import Agent
+from algorithms.ppo import Agent
 
 GAMMA = 0.99
-LEARNING_RATE = 0.001
-EPS_MIN = 0.05
-EPS_DEC = 5e-7
-BUFFER_SIZE = 100000
-BATCH_SIZE = 32
+ALPHA = 0.0003
+GAE_LAMBDA = 0.95
+POLICY_CLIP = 0.2
+BATCH_SIZE = 64
+N_EPOCHS = 10
 
 def train(env, n_games=10000):
     # Create a new folder for the model
     for i in range(1, 100):
-        if not os.path.exists(f'models/dueling_ddqn_{i}'):
-            FOLDER = f'models/dueling_ddqn_{i}'
+        if not os.path.exists(f'models/ppo_{i}'):
+            FOLDER = f'models/ppo_{i}'
             os.makedirs(FOLDER)
             break
 
@@ -21,8 +21,8 @@ def train(env, n_games=10000):
 
     agents = {}
     for agent_id in env.possible_agents:
-        agents[agent_id] = Agent(GAMMA, 1.0, LEARNING_RATE, n_actions, [env.obs_size], 
-                    BUFFER_SIZE, BATCH_SIZE, agent_id, eps_min=EPS_MIN, eps_dec=EPS_DEC, chkpt_dir=FOLDER)
+        agents[agent_id] = Agent(n_actions, [env.obs_size], GAMMA, ALPHA, GAE_LAMBDA,
+                    POLICY_CLIP, BATCH_SIZE, N_EPOCHS, chkpt_dir=FOLDER, name=agent_id)
 
     timesteps_cntr = 0
     wins = {
@@ -41,13 +41,21 @@ def train(env, n_games=10000):
             timesteps_cntr += 1
             alive_agents = env.agents
             actions = {}
+            prob = {}
+            val = {}
+
             for agent in alive_agents:
-                actions[agent] = agents[agent].choose_action(obs[agent])
+                actions[agent], prob[agent], val[agent] = agents[agent].choose_action(obs[agent])
+
             obs_, rewards, dones, info = env.step(actions)
+
             for agent in alive_agents:
-                agents[agent].store_transition(obs[agent], actions[agent],
-                                rewards[agent], obs_[agent], dones[agent])
-                agents[agent].learn()
+                agents[agent].remember(obs[agent], actions[agent], prob[agent], val[agent], 
+                                rewards[agent], dones[agent])
+
+                if i % 20 == 0:
+                    agents[agent].learn()
+
             obs = obs_
 
         # Add outcome to wins
@@ -63,15 +71,14 @@ def train(env, n_games=10000):
 
             # Print out progress
             print(f'\n=========================\n\
-    | Current Time: {now.strftime("%I:%M %p")}\n\
-    | Elapsed Time: {formatted_elapsed}\n\
-    | Games: {env.total_games}\n\
-    | Epsilon: {round(agents[env.possible_agents[0]].epsilon, 3)}\n\
-    | Timesteps: {timesteps_cntr}\n\
-    | Red Wins: {wins["red"]}\n\
-    | Blue Wins: {wins["blue"]}\n\
-    | Ties: {wins["tie"]}\n\
-    ==========================\n')
+| Current Time: {now.strftime("%I:%M %p")}\n\
+| Elapsed Time: {formatted_elapsed}\n\
+| Games: {env.total_games}\n\
+| Timesteps: {timesteps_cntr}\n\
+| Red Wins: {wins["red"]}\n\
+| Blue Wins: {wins["blue"]}\n\
+| Ties: {wins["tie"]}\n\
+==========================\n')
 
             wins = {'red': 0, 'blue': 0, 'tie': 0} # Reset the win history
 
@@ -87,5 +94,29 @@ def train(env, n_games=10000):
         elif env.show:
             env.show = False
             env.close()
+
+    env.close()
+
+def evaluate(env, model_path, eval_games=10):
+    n_actions = env.n_actions
+
+    agents = {}
+    for agent_id in env.possible_agents:
+        agents[agent_id] = Agent(n_actions, [env.obs_size], GAMMA, ALPHA, GAE_LAMBDA,
+                    POLICY_CLIP, BATCH_SIZE, N_EPOCHS, chkpt_dir=model_path, name=agent_id)
+        agents[agent_id].load_models()
+
+    for i in range(eval_games):
+        obs = env.reset()
+
+        while not env.env_done:
+            alive_agents = env.agents
+            actions = {}
+            for agent in alive_agents:
+                actions[agent], prob_, val_ = agents[agent].choose_action(obs[agent])
+
+            obs_, rewards, dones, info = env.step(actions)
+
+            obs = obs_
 
     env.close()
