@@ -5,9 +5,6 @@ import torch.optim as optim
 import os
 import numpy as np
 
-threads_to_use = T.get_num_threads() // 2 
-T.set_num_threads(threads_to_use)
-
 class ReplayBuffer():
     def __init__(self, max_size, input_shape):
         self.mem_size = max_size
