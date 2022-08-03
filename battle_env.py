@@ -10,6 +10,7 @@ from pettingzoo import ParallelEnv
 from pettingzoo.utils import wrappers
 from pettingzoo.utils import parallel_to_aec
 import vidmaker
+import cv2
 os.environ['KMP_DUPLICATE_LIB_OK']='True' # Needed or else it sometimes causes issues on windows machines
 
 # Constants for pygame
@@ -842,11 +843,11 @@ class parallel_env(ParallelEnv, EzPickle):
                 textRect.center = (DISP_WIDTH//2, DISP_HEIGHT//2)
             self.display.blit(text, textRect)
             pygame.display.update()
-            self.video.update(pygame.surfarray.pixels3d(self.display).swapaxes(0, 1))
+            self.video.update(cv2.cvtColor(pygame.surfarray.pixels3d(self.display).swapaxes(0, 1), cv2.COLOR_BGR2RGB))
 
             if self.fps <= 60:
                 for i in range(20):
-                    self.video.update(pygame.surfarray.pixels3d(self.display).swapaxes(0, 1))
+                    self.video.update(cv2.cvtColor(pygame.surfarray.pixels3d(self.display).swapaxes(0, 1), cv2.COLOR_BGR2RGB))
                 pygame.time.wait(500)
             self.video.export()
             self.rendering = False
@@ -928,6 +929,6 @@ class parallel_env(ParallelEnv, EzPickle):
             self.winner_screen()
 
         # Update the display and tick the clock with the framerate
-        self.video.update(pygame.surfarray.pixels3d(self.display).swapaxes(0, 1))
+        self.video.update(cv2.cvtColor(pygame.surfarray.pixels3d(self.display).swapaxes(0, 1), cv2.COLOR_BGR2RGB))
         pygame.display.update()
         self.clock.tick(self.fps)
