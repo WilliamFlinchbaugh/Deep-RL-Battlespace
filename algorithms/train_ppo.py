@@ -1,6 +1,6 @@
 import os
 import datetime
-from ppo import Agent
+from algorithms.ppo import Agent
 
 GAMMA = 0.99
 ALPHA = 0.0003

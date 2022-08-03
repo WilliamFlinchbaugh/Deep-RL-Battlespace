@@ -1,6 +1,6 @@
 import os
 import datetime
-from dueling_ddqn import Agent
+from algorithms.dueling_ddqn import Agent
 
 GAMMA = 0.99
 LEARNING_RATE = 0.001

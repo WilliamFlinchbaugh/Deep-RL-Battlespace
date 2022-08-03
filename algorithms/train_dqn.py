@@ -1,6 +1,6 @@
 import os
 import datetime
-from dqn import Agent
+from algorithms.dqn import Agent
 
 GAMMA = 0.99
 LEARNING_RATE = 0.001
