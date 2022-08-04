@@ -216,8 +216,8 @@ class Plane(pygame.sprite.Sprite):
         surface.blit(image, rect)
 
         # Draw the name of the plane
-        font = pygame.font.Font('freesansbold.ttf', 12)
-        text = font.render(self.id)
+        font = pygame.font.Font(pygame.font.get_default_font(), 18)
+        text = font.render(self.id, True, self.color)
         text_rect = text.get_rect()
         text_rect.center = (rect.centerx, self.rect.centery + self.h)
         surface.blit(text, text_rect)
@@ -830,7 +830,7 @@ class parallel_env(ParallelEnv, EzPickle):
         Display the winner of the game when the game is over
         """
         if self.show: # Makes sure that we are visualizing
-            font = pygame.font.Font('freesansbold.ttf', 32)
+            font = pygame.font.Font(pygame.font.get_default_font(), 32)
             if self.winner != 'none' and self.winner != 'tie':
                 text = font.render(f"THE WINNER IS {self.winner.upper()}", True, BLACK)
                 textRect = text.get_rect()
