@@ -925,9 +925,11 @@ class parallel_env(ParallelEnv, EzPickle):
         self.clock.tick(self.fps)
 
     def start_recording(self, path):
+        print('Starting recording...')
         self.recording = True
         self.video = vidmaker.Video(path, fps=self.fps, resolution=(DISP_WIDTH, DISP_HEIGHT))
     
     def export_video(self):
+        print('Exporting video!')
         self.recording = False
         self.video.export()
