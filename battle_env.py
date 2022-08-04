@@ -781,6 +781,9 @@ class parallel_env(ParallelEnv, EzPickle):
         observations = {agent: self.observe(agent) for agent in self.possible_agents}
         infos = {agent: {} for agent in self.possible_agents}
 
+        if not self.agents:
+            self.env_done = True
+
         if self.env_done: # The game is over
             self.agents = [] # Kill all agents 
             self.dones = {agent: True for agent in self.possible_agents} # Set all agents to done
