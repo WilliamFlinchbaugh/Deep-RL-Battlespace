@@ -86,6 +86,7 @@ def train(env, n_games=10000):
             # Visualize 1 game every 1000 trained games
             if env.total_games % 1000 == 0:
                 env.show = True
+                env.start_recording(f'{FOLDER}/training_vids/{i}.mp4')
 
             # Save models
             print("\n=================\n| Saving Models |\n=================\n")
@@ -93,6 +94,7 @@ def train(env, n_games=10000):
                 agent.save_models()
 
         elif env.show:
+            env.export_video()
             env.show = False
             env.close()
 
@@ -109,6 +111,7 @@ def evaluate(env, model_path, eval_games=10):
                     BUFFER_SIZE, BATCH_SIZE, agent_id, eps_min=EPS_MIN, eps_dec=EPS_DEC, chkpt_dir=model_path)
         agents[agent_id].load_models()
 
+    env.start_recording(f'{model_path}/eval_vid.mp4')
     for i in range(eval_games):
         obs = env.reset()
 
@@ -120,4 +123,5 @@ def evaluate(env, model_path, eval_games=10):
             obs_, rewards, dones, info = env.step(actions)
             obs = obs_
 
+    env.export_video()
     env.close()

@@ -102,8 +102,10 @@ def train(env, n_games=10000):
             # Visualize 1 game every 1000 trained games
             if env.total_games % 1000 == 0:
                 env.show = True
+                env.start_recording(f'{FOLDER}/training_vids/{i}.mp4')
 
         elif env.show:
+            env.export_video()
             env.show = False
             env.close()
 
@@ -120,6 +122,7 @@ def evaluate(env, model_path, eval_games=10):
                     POLICY_CLIP, BATCH_SIZE, N_EPOCHS, chkpt_dir=model_path, name=agent_id)
         agents[agent_id].load_models()
 
+    env.start_recording(f'{model_path}/eval_vid.mp4')
     for i in range(eval_games):
         obs = env.reset()
 
@@ -133,4 +136,5 @@ def evaluate(env, model_path, eval_games=10):
 
             obs = obs_
 
+    env.export_video()
     env.close()
