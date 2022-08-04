@@ -5,7 +5,7 @@ from utils import plot_data
 
 GAMMA = 0.99
 ALPHA = 0.0003
-GAE_LAMBDA = 0.95
+GAE_LAMBDA = 0.95 
 POLICY_CLIP = 0.2
 BATCH_SIZE = 64
 N_EPOCHS = 10
@@ -31,7 +31,7 @@ def train(env, n_games=10000):
         'blue': 0,
         'tie': 0
     }
-    rewards_history = {agent_id: [] for agent_id in env.possible_agents}
+    score_history = {agent_id: [] for agent_id in env.possible_agents}
 
 
     print("\n=====================\n| Starting Training |\n=====================\n")
@@ -39,6 +39,7 @@ def train(env, n_games=10000):
 
     for i in range(n_games):
         obs = env.reset()
+        scores = {agent_id: 0 for agent_id in env.possible_agents}
 
         while not env.env_done:
             timesteps_cntr += 1
@@ -53,7 +54,7 @@ def train(env, n_games=10000):
             obs_, rewards, dones, info = env.step(actions)
 
             for agent in env.possible_agents:
-                rewards_history[agent].append(rewards[agent])
+                scores[agent] += rewards[agent]
 
             for agent in alive_agents:
                 agents[agent].remember(obs[agent], actions[agent], prob[agent], val[agent], 
@@ -67,6 +68,11 @@ def train(env, n_games=10000):
         # Add outcome to wins
         wins[env.winner] += 1
 
+        # Append scores
+        for agent in env.possible_agents:
+            score_history[agent].append(scores[agent])
+
+        # Print out progress and save models
         if env.total_games % 100 == 0 and env.total_games > 0:
             now = datetime.datetime.now()
             elapsed = now - start # Elapsed time in seconds
@@ -88,20 +94,20 @@ def train(env, n_games=10000):
 
             wins = {'red': 0, 'blue': 0, 'tie': 0} # Reset the win history
 
-            # Visualize 1 game every 1000 trained games
-            if env.total_games % 1000 == 0:
-                env.show = True
-
             # Save models
             print("\n=================\n| Saving Models |\n=================\n")
             for agent in agents.values():
                 agent.save_models()
 
+            # Visualize 1 game every 1000 trained games
+            if env.total_games % 1000 == 0:
+                env.show = True
+
         elif env.show:
             env.show = False
             env.close()
 
-    plot_data(rewards_history, FOLDER + '/mean_rew.svg')
+    plot_data(score_history, FOLDER + '/mean_rew.svg')
     env.close()
 
 def evaluate(env, model_path, eval_games=10):
