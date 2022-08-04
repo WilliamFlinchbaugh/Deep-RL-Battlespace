@@ -1,6 +1,7 @@
 import os
 import datetime
 from algorithms.dueling_ddqn import Agent
+from utils import plot_data
 
 GAMMA = 0.99
 LEARNING_RATE = 0.001
@@ -30,6 +31,7 @@ def train(env, n_games=10000):
         'blue': 0,
         'tie': 0
     }
+    rewards_history = {agent_id: [] for agent_id in env.possible_agents}
 
     print("\n=====================\n| Starting Training |\n=====================\n")
     start = datetime.datetime.now()
@@ -41,9 +43,15 @@ def train(env, n_games=10000):
             timesteps_cntr += 1
             alive_agents = env.agents
             actions = {}
+
             for agent in alive_agents:
                 actions[agent] = agents[agent].choose_action(obs[agent])
+
             obs_, rewards, dones, info = env.step(actions)
+
+            for agent in env.possible_agents:
+                rewards_history[agent].append(rewards[agent])
+
             for agent in alive_agents:
                 agents[agent].store_transition(obs[agent], actions[agent],
                                 rewards[agent], obs_[agent], dones[agent])
@@ -88,6 +96,7 @@ def train(env, n_games=10000):
             env.show = False
             env.close()
 
+    plot_data(rewards_history, FOLDER + '/mean_rew.svg')
     env.close()
 
 def evaluate(env, model_path, eval_games=10):

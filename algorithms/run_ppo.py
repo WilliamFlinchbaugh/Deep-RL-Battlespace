@@ -1,6 +1,7 @@
 import os
 import datetime
 from algorithms.ppo import Agent
+from utils import plot_data
 
 GAMMA = 0.99
 ALPHA = 0.0003
@@ -30,6 +31,8 @@ def train(env, n_games=10000):
         'blue': 0,
         'tie': 0
     }
+    rewards_history = {agent_id: [] for agent_id in env.possible_agents}
+
 
     print("\n=====================\n| Starting Training |\n=====================\n")
     start = datetime.datetime.now()
@@ -48,6 +51,9 @@ def train(env, n_games=10000):
                 actions[agent], prob[agent], val[agent] = agents[agent].choose_action(obs[agent])
 
             obs_, rewards, dones, info = env.step(actions)
+
+            for agent in env.possible_agents:
+                rewards_history[agent].append(rewards[agent])
 
             for agent in alive_agents:
                 agents[agent].remember(obs[agent], actions[agent], prob[agent], val[agent], 
@@ -95,6 +101,7 @@ def train(env, n_games=10000):
             env.show = False
             env.close()
 
+    plot_data(rewards_history, FOLDER + '/mean_rew.svg')
     env.close()
 
 def evaluate(env, model_path, eval_games=10):
