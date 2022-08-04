@@ -15,6 +15,7 @@ def plot_data(reward_dict, filename):
     ax.set_title('Mean Reward for Each Agent')
     ax.set_xlabel('Number of games played')
     ax.set_ylabel('Mean reward')
+    ax.grid()
     ax.legend()
     fig.savefig(filename)
 
