@@ -22,10 +22,11 @@ def train(env, env_config, n_games=10000, gamma=GAMMA, learning_rate=LEARNING_RA
     # Save the configuration of the model
     hyperparams = {'gamma': gamma, 'learning_rate': learning_rate, 'eps_min': eps_min, 'eps_dec': eps_dec, 'buffer_size': buffer_size, 'batch_size': batch_size}
     f = open(f"{FOLDER}/config.txt", 'a')
-    pprint(f"ENV CONFIG:\n{env_config}", stream=f)
-    pprint(f"HYPERPARAMETERS:\n{hyperparams}", stream=f)
+    f.write("ALGORITHM: DUELING DDQN\n\nENV CONFIG:\n")
+    pprint(env_config, stream=f)
+    f.write("\nHYPERPARAMETERS:\n")
+    pprint(hyperparams, stream=f)
     f.close()
-
     n_actions = env.n_actions
 
     agents = {}
