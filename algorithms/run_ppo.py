@@ -112,7 +112,7 @@ def train(env, env_config, n_games=10000, gamma=GAMMA, alpha=ALPHA, gae_lambda=G
                 agent.save_models()
 
             # Visualize 1 game every 1000 trained games
-            if env.total_games % 100 == 0:
+            if env.total_games % 1000 == 0:
                 env.show = True
                 env.start_recording(f'{FOLDER}/training_vids/{i+1}.mp4')
 
