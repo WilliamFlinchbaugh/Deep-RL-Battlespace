@@ -7,7 +7,7 @@ cf = {
     'hit_plane_reward': 1, # Reward value for hitting enemy plane
     'miss_punishment': 0, # Punishment value for missing a shot
     'die_punishment': 0, # Punishment value for a plane dying
-    'fps': 50 # Framerate that the visuals run at
+    'fps': 20 # Framerate that the visuals run at
 }
 
 env = battle_env.parallel_env(**cf)
