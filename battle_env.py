@@ -214,6 +214,15 @@ class Plane(pygame.sprite.Sprite):
         """
         image, rect = blitRotate(self.image, self.rect.center, (self.w/2, self.h/2), self.direction)
         surface.blit(image, rect)
+
+        # Draw the name of the plane
+        font = pygame.font.Font('freesansbold.ttf', 12)
+        text = font.render(self.id)
+        text_rect = text.get_rect()
+        text_rect.center = (rect.centerx, self.rect.centery + self.h)
+        surface.blit(text, text_rect)
+
+        # Draw the health bar
         if self.hp > 0:
             rect = pygame.Rect(0, 0, self.hp * 10, 10)
             border_rect = pygame.Rect(0, 0, self.hp * 10 + 2, 12)
