@@ -17,6 +17,7 @@ def train(env, env_config, n_games=10000, gamma=GAMMA, learning_rate=LEARNING_RA
         if not os.path.exists(f'models/dueling_ddqn_{i}'):
             FOLDER = f'models/dueling_ddqn_{i}'
             os.makedirs(FOLDER)
+            os.makedirs(f'{FOLDER}/training_vids')
             break
 
     # Save the configuration of the model
