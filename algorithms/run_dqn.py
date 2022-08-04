@@ -98,7 +98,7 @@ def train(env, env_config, n_games=10000, gamma=GAMMA, learning_rate=LEARNING_RA
             # Visualize 1 game every 1000 trained games
             if env.total_games % 1000 == 0:
                 env.show = True
-                env.start_recording(f'{FOLDER}/training_vids/{i}.mp4')
+                env.start_recording(f'{FOLDER}/training_vids/{i+1}.mp4')
 
             # Save models
             print("\n=================\n| Saving Models |\n=================\n")
