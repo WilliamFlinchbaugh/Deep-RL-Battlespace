@@ -24,5 +24,5 @@ cf = {
 
 env = battle_env.parallel_env(**cf)
 
-algorithm.train(env=env, n_games=20000)
-algorithm.evaluate(env=env, model_path='models/ppo_5', eval_games=10)
+algorithm.train(env=env, n_games=30000)
+# algorithm.evaluate(env=env, model_path='models/ppo_2', eval_games=10)
