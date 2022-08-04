@@ -12,7 +12,7 @@ algorithms = {
 
 algorithm = algorithms[ALGORITHM]
 
-cf = {
+env_config = {
     'n_agents': 2, # Number of planes on each team
     'show': False, # Show visuals
     'hit_base_reward': 100, # Reward value for hitting enemy base
@@ -22,7 +22,7 @@ cf = {
     'fps': 20 # Framerate that the visuals run at
 }
 
-env = battle_env.parallel_env(**cf)
+env = battle_env.parallel_env(**env_config)
 
-algorithm.train(env=env, n_games=30000)
-# algorithm.evaluate(env=env, model_path='models/ppo_2', eval_games=10)
+algorithm.train(env=env, env_config=env_config, n_games=1100)
+algorithm.evaluate(env=env, model_path='models/ppo_1', eval_games=10)
