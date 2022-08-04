@@ -2,6 +2,7 @@ import os
 import datetime
 from algorithms.dqn import Agent
 from utils import plot_data
+from pprint import pprint
 
 GAMMA = 0.99
 LEARNING_RATE = 0.001
@@ -10,13 +11,20 @@ EPS_DEC = 2e-7
 BUFFER_SIZE = 100000
 BATCH_SIZE = 32
 
-def train(env, n_games=10000):
+def train(env, env_config, n_games=10000, gamma=GAMMA, learning_rate=LEARNING_RATE, eps_min=EPS_MIN, eps_dec=EPS_DEC, buffer_size=BUFFER_SIZE, batch_size=BATCH_SIZE):
     # Create a new folder for the model
     for i in range(1, 100):
         if not os.path.exists(f'models/dqn_{i}'):
             FOLDER = f'models/dqn_{i}'
             os.makedirs(FOLDER)
             break
+
+    # Save the configuration of the model
+    hyperparams = {'gamma': gamma, 'learning_rate': learning_rate, 'eps_min': eps_min, 'eps_dec': eps_dec, 'buffer_size': buffer_size, 'batch_size': batch_size}
+    f = open(f"{FOLDER}/config.txt", 'a')
+    pprint(f"ENV CONFIG:\n{env_config}", stream=f)
+    pprint(f"HYPERPARAMETERS:\n{hyperparams}", stream=f)
+    f.close()
 
     n_actions = env.n_actions
 

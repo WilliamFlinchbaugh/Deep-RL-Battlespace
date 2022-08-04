@@ -2,6 +2,7 @@ import os
 import datetime
 from algorithms.ppo import Agent
 from utils import plot_data
+from pprint import pprint
 
 GAMMA = 0.99
 ALPHA = 0.0003
@@ -10,7 +11,7 @@ POLICY_CLIP = 0.2
 BATCH_SIZE = 64
 N_EPOCHS = 10
 
-def train(env, n_games=10000):
+def train(env, env_config, n_games=10000, gamma=GAMMA, alpha=ALPHA, gae_lambda=GAE_LAMBDA, policy_clip=POLICY_CLIP, batch_size=BATCH_SIZE, n_epochs=N_EPOCHS):
     # Create a new folder for the model
     for i in range(1, 100):
         if not os.path.exists(f'models/ppo_{i}'):
@@ -18,12 +19,20 @@ def train(env, n_games=10000):
             os.makedirs(FOLDER)
             break
 
+    # Save the configuration of the model
+    hyperparams = {'gamma': gamma, 'alpha': alpha, 'gae_lambda': gae_lambda, 'policy_clip': policy_clip, 'batch_size': batch_size, 'n_epochs': n_epochs}
+    f = open(f"{FOLDER}/config.txt", 'a')
+    pprint(f"ENV CONFIG:\n{env_config}", stream=f)
+    pprint(f"HYPERPARAMETERS:\n{hyperparams}", stream=f)
+    f.close()
+
     n_actions = env.n_actions
 
+    # Instantiate agents
     agents = {}
     for agent_id in env.possible_agents:
-        agents[agent_id] = Agent(n_actions, [env.obs_size], GAMMA, ALPHA, GAE_LAMBDA,
-                    POLICY_CLIP, BATCH_SIZE, N_EPOCHS, chkpt_dir=FOLDER, name=agent_id)
+        agents[agent_id] = Agent(n_actions, [env.obs_size], gamma, alpha, gae_lambda,
+                    policy_clip, batch_size, n_epochs, chkpt_dir=FOLDER, name=agent_id)
 
     timesteps_cntr = 0
     wins = {
