@@ -13,7 +13,7 @@ def plot_data(reward_dict, filename):
             running_avg[t] = np.mean(scores[max(0, t-5):(t+1)])
         x = [i for i in range(games_played)]
         cubic_interploation_model = interp1d(x, running_avg, kind = "cubic")
-        X_=np.linspace(min(x), max(x), 10)
+        X_=np.linspace(min(x), max(x), 30)
         Y_=cubic_interploation_model(X_)
         ax.plot(X_, Y_, label=id)
 
