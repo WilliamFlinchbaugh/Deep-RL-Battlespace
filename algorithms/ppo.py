@@ -1,3 +1,9 @@
+"""
+PPO Model made by Phil from Machine Learning with Phil
+For details, go to his video: youtube.com/watch?v=hlv79rcHws0
+Here's the repo: github.com/philtabor/Youtube-Code-Repository/blob/master/ReinforcementLearning/PolicyGradient/PPO/torch/ppo_torch.py
+"""
+
 import os
 import numpy as np
 import torch as T

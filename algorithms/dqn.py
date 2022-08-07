@@ -1,3 +1,9 @@
+"""
+DQN Model made by Phil from Machine Learning with Phil
+For details, go to his video: youtube.com/watch?v=wc-FxNENg9U
+Here's the repo: github.com/philtabor/Youtube-Code-Repository/blob/master/ReinforcementLearning/DeepQLearning/simple_dqn_torch_2020.py
+"""
+
 import torch as T
 import torch.nn as nn
 import torch.nn.functional as F
