@@ -17,16 +17,16 @@ def main():
         'n_agents': 2, # Number of planes on each team
         'show': False, # Show visuals
         'hit_base_reward': 100, # Reward value for hitting enemy base
-        'hit_plane_reward': 10, # Reward value for hitting enemy plane
-        'miss_punishment': -2, # Punishment value for missing a shot
+        'hit_plane_reward': 13, # Reward value for hitting enemy plane
+        'miss_punishment': -3, # Punishment value for missing a shot
         'die_punishment': 0, # Punishment value for a plane dying
         'fps': 20 # Framerate that the visuals run at
     }
 
     env = battle_env.parallel_env(**env_config)
 
-    algorithm.train(env=env, env_config=env_config, n_games=30000)
-    algorithm.evaluate(env=env, model_path='models/ppo_1', eval_games=10)
+    algorithm.train(env=env, env_config=env_config, n_games=75000)
+    algorithm.evaluate(env=env, model_path='models/ppo_2', eval_games=10)
 
 if __name__ == '__main__':
     main()
