@@ -653,6 +653,7 @@ class parallel_env(ParallelEnv, EzPickle):
         Returns:
             observations (dict): Initial observations of each agent
         """
+        
         # Reset the winner
         self.winner = 'none'
 
@@ -693,22 +694,25 @@ class parallel_env(ParallelEnv, EzPickle):
             dones (dict): Dictionary indicating which agents are done and should be skipped over
             infos (dict): Used for extra info (not utilized)
         """
-
-        # Set rewards and cumulative rewards to 0
-        rewards = {agent: 0 for agent in self.possible_agents}
-
-        # If passing no actions
-        if not actions:
+        # If passing no actions or no agents alive, then we have a tie because all agents are dead
+        if len(actions) == 0 or len(self.agents) == 0:
             self.winner = "tie"
-            self.env_done = True # Set environment to done
             self.agents = [] # Kill all agents
+            self.env_done = True # Set environment to done
+            self.total_games += 1
+            self.ties += 1
             observations = {agent: self.observe(agent) for agent in self.possible_agents} # Get observation for each agent
             infos = {agent: {} for agent in self.possible_agents} # Empty info for each agent
             self.dones = {agent: True for agent in self.possible_agents}
             return observations, rewards, self.dones, infos 
 
-        # Increase time and check for a tie
+        # Initialize all rewards to 0
+        rewards = {agent: 0 for agent in self.possible_agents}
+
+        # Increment time
         self.total_time += self.time_step
+
+        # Check for tie
         if self.total_time >= self.max_time: # If over the max time
             self.dones = {agent: True for agent in self.possible_agents} # Set all agents to done
             self.winner = 'tie'
