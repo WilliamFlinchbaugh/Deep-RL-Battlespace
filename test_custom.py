@@ -2,7 +2,7 @@ import os
 import datetime
 import battle_env
 import algorithms.WIP_custom_model as model
-from utils import plot_data
+from utils.utils import plot_data
 from pprint import pprint
 
 GAMMA = 0.99
