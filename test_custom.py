@@ -52,6 +52,7 @@ def train(env, env_config, n_games=10000, gamma=GAMMA, alpha=ALPHA, gae_lambda=G
     for i in range(n_games):
         obs = env.reset()
         scores = {agent_id: 0 for agent_id in env.possible_agents}
+        recording = False
 
         while not env.env_done:
             timesteps_cntr += 1
@@ -73,7 +74,7 @@ def train(env, env_config, n_games=10000, gamma=GAMMA, alpha=ALPHA, gae_lambda=G
                 agent.remember(obs[id], actions[id], prob[id], val[id], 
                                 rewards[id], dones[id])
 
-                if i % 20 == 0:
+                if i % 20 == 0 and not recording: # Learn every 20 games
                     agent = teams[env.team_map[id]].agents[id] # Get the agent from the team
                     agent.learn()
 
@@ -113,15 +114,17 @@ def train(env, env_config, n_games=10000, gamma=GAMMA, alpha=ALPHA, gae_lambda=G
             for team in teams.values():
                 team.save_models()
 
-            # Visualize 1 game every 200 trained games
-            if env.total_games % 200 == 0:
+            # Visualize 1 game every 1000 trained games
+            if env.total_games % 1000 == 0:
                 env.show = True
                 env.start_recording(f'{FOLDER}/training_vids/{i+1}.mp4')
+                recording = True
 
         elif env.show:
             env.export_video()
             env.show = False
             env.close()
+            recording = False
 
     plot_data(score_history, FOLDER + '/mean_rew.svg')
     env.close()
