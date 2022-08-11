@@ -696,14 +696,9 @@ class parallel_env(ParallelEnv, EzPickle):
         """
         # If passing no actions or no agents alive, then we have a tie because all agents are dead
         if len(actions) == 0 or len(self.agents) == 0:
-            self.winner = "tie"
-            self.agents = [] # Kill all agents
-            self.env_done = True # Set environment to done
-            self.total_games += 1
-            self.ties += 1
+            self.tie()
             observations = {agent: self.observe(agent) for agent in self.possible_agents} # Get observation for each agent
             infos = {agent: {} for agent in self.possible_agents} # Empty info for each agent
-            self.dones = {agent: True for agent in self.possible_agents}
             return observations, rewards, self.dones, infos 
 
         # Initialize all rewards to 0
@@ -714,17 +709,9 @@ class parallel_env(ParallelEnv, EzPickle):
 
         # Check for tie
         if self.total_time >= self.max_time: # If over the max time
-            self.dones = {agent: True for agent in self.possible_agents} # Set all agents to done
-            self.winner = 'tie'
-            self.total_games += 1 
-            self.ties += 1
-            if self.show:
-                self.render()
+            self.tie()
             observations = {agent: self.observe(agent) for agent in self.possible_agents} # Get observation for each agent
             infos = {agent: {} for agent in self.possible_agents} # Empty info for each agent
-            self.agents = [] # Kill all agents
-            self.env_done = True # Set environment to done
-            self.dones = {agent: True for agent in self.possible_agents}
             return observations, rewards, self.dones, infos
 
         for agent_id in self.agents: # Carry out actions for each agent that is alive
@@ -764,19 +751,11 @@ class parallel_env(ParallelEnv, EzPickle):
         
         # Check if red won game
         if not self.team['blue']['base'].alive:
-            self.winner = 'red'
-            self.team['red']['wins'] += 1
-            self.total_games += 1
-            self.dones = {agent: True for agent in self.possible_agents}
-            self.env_done = True
+            self.win('red')
 
         # Check if blue won game
         if not self.team['red']['base'].alive:
-            self.winner = 'blue'
-            self.team['blue']['wins'] += 1
-            self.total_games += 1
-            self.dones = {agent: True for agent in self.possible_agents}
-            self.env_done = True
+            self.win('blue')
 
         # Render the environment
         if self.show:
@@ -784,15 +763,6 @@ class parallel_env(ParallelEnv, EzPickle):
         
         observations = {agent: self.observe(agent) for agent in self.possible_agents}
         infos = {agent: {} for agent in self.possible_agents}
-
-        if not self.agents:
-            self.env_done = True
-
-        if self.env_done: # The game is over
-            self.agents = [] # Kill all agents 
-            self.dones = {agent: True for agent in self.possible_agents} # Set all agents to done
-            if self.team['blue']['base'].alive and self.team['red']['base'].alive:
-                self.winner = "tie"
         
         return observations, rewards, self.dones, infos
     
@@ -868,6 +838,24 @@ class parallel_env(ParallelEnv, EzPickle):
         Closes the pygame display
         """
         pygame.display.quit()
+
+    def tie(self):
+        self.winner = 'tie'
+        self.total_games += 1 
+        self.ties += 1
+        self.env_done = True
+        self.dones = {agent: True for agent in self.possible_agents}
+        if self.show:
+            self.render()
+
+    def win(self, winner):
+        self.winner = winner
+        self.total_games += 1 
+        self.team[winner]['wins'] += 1
+        self.env_done = True
+        self.dones = {agent: True for agent in self.possible_agents}
+        if self.show:
+            self.render()
 
     def render(self, mode="human"):
         """
