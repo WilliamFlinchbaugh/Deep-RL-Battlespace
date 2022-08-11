@@ -1,6 +1,6 @@
 import os
 import datetime
-import env.battle_env as battle_env
+import envs.battle_env as battle_env
 import algorithms.WIP_custom_model as model
 from utils.utils import plot_data
 from pprint import pprint

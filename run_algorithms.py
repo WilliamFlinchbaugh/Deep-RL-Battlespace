@@ -1,4 +1,4 @@
-import env.battle_env as battle_env
+import envs.battle_env as battle_env
 from algorithms import run_dueling_ddqn, run_ppo, run_dqn
 
 def main():

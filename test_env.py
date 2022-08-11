@@ -1,4 +1,4 @@
-import env.battle_env as battle_env
+import envs.battle_env as battle_env
 
 def main():
     cf = {
