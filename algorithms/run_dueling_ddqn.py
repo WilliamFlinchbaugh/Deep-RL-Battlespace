@@ -2,6 +2,7 @@ import os
 import datetime
 from algorithms.dueling_ddqn import Agent
 from utils import plot_data
+from pprint import pprint
 
 GAMMA = 0.99
 LEARNING_RATE = 0.001
@@ -10,14 +11,23 @@ EPS_DEC = 5e-7
 BUFFER_SIZE = 100000
 BATCH_SIZE = 32
 
-def train(env, n_games=10000):
+def train(env, env_config, n_games=10000, gamma=GAMMA, learning_rate=LEARNING_RATE, eps_min=EPS_MIN, eps_dec=EPS_DEC, buffer_size=BUFFER_SIZE, batch_size=BATCH_SIZE):
     # Create a new folder for the model
     for i in range(1, 100):
         if not os.path.exists(f'models/dueling_ddqn_{i}'):
             FOLDER = f'models/dueling_ddqn_{i}'
             os.makedirs(FOLDER)
+            os.makedirs(f'{FOLDER}/training_vids')
             break
 
+    # Save the configuration of the model
+    hyperparams = {'gamma': gamma, 'learning_rate': learning_rate, 'eps_min': eps_min, 'eps_dec': eps_dec, 'buffer_size': buffer_size, 'batch_size': batch_size}
+    f = open(f"{FOLDER}/config.txt", 'a')
+    f.write("ALGORITHM: DUELING DDQN\n\nENV CONFIG:\n")
+    pprint(env_config, stream=f)
+    f.write("\nHYPERPARAMETERS:\n")
+    pprint(hyperparams, stream=f)
+    f.close()
     n_actions = env.n_actions
 
     agents = {}
@@ -86,6 +96,7 @@ def train(env, n_games=10000):
             # Visualize 1 game every 1000 trained games
             if env.total_games % 1000 == 0:
                 env.show = True
+                env.start_recording(f'{FOLDER}/training_vids/{i+1}.mp4')
 
             # Save models
             print("\n=================\n| Saving Models |\n=================\n")
@@ -93,6 +104,7 @@ def train(env, n_games=10000):
                 agent.save_models()
 
         elif env.show:
+            env.export_video()
             env.show = False
             env.close()
 
@@ -109,6 +121,7 @@ def evaluate(env, model_path, eval_games=10):
                     BUFFER_SIZE, BATCH_SIZE, agent_id, eps_min=EPS_MIN, eps_dec=EPS_DEC, chkpt_dir=model_path)
         agents[agent_id].load_models()
 
+    env.start_recording(f'{model_path}/eval_vid.mp4')
     for i in range(eval_games):
         obs = env.reset()
 
@@ -120,4 +133,5 @@ def evaluate(env, model_path, eval_games=10):
             obs_, rewards, dones, info = env.step(actions)
             obs = obs_
 
+    env.export_video()
     env.close()

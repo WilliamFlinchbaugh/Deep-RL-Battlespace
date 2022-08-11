@@ -214,6 +214,15 @@ class Plane(pygame.sprite.Sprite):
         """
         image, rect = blitRotate(self.image, self.rect.center, (self.w/2, self.h/2), self.direction)
         surface.blit(image, rect)
+
+        # Draw the name of the plane
+        font = pygame.font.Font(pygame.font.get_default_font(), 18)
+        text = font.render(self.id, True, self.color)
+        text_rect = text.get_rect()
+        text_rect.center = (rect.centerx, self.rect.centery + self.h)
+        surface.blit(text, text_rect)
+
+        # Draw the health bar
         if self.hp > 0:
             rect = pygame.Rect(0, 0, self.hp * 10, 10)
             border_rect = pygame.Rect(0, 0, self.hp * 10 + 2, 12)
@@ -772,6 +781,9 @@ class parallel_env(ParallelEnv, EzPickle):
         observations = {agent: self.observe(agent) for agent in self.possible_agents}
         infos = {agent: {} for agent in self.possible_agents}
 
+        if not self.agents:
+            self.env_done = True
+
         if self.env_done: # The game is over
             self.agents = [] # Kill all agents 
             self.dones = {agent: True for agent in self.possible_agents} # Set all agents to done
@@ -821,7 +833,7 @@ class parallel_env(ParallelEnv, EzPickle):
         Display the winner of the game when the game is over
         """
         if self.show: # Makes sure that we are visualizing
-            font = pygame.font.Font('freesansbold.ttf', 32)
+            font = pygame.font.Font(pygame.font.get_default_font(), 32)
             if self.winner != 'none' and self.winner != 'tie':
                 text = font.render(f"THE WINNER IS {self.winner.upper()}", True, BLACK)
                 textRect = text.get_rect()
@@ -916,9 +928,11 @@ class parallel_env(ParallelEnv, EzPickle):
         self.clock.tick(self.fps)
 
     def start_recording(self, path):
+        print('Starting recording...')
         self.recording = True
         self.video = vidmaker.Video(path, fps=self.fps, resolution=(DISP_WIDTH, DISP_HEIGHT))
     
     def export_video(self):
+        print('Exporting video!')
         self.recording = False
         self.video.export()

@@ -1,3 +1,9 @@
+"""
+Dueling DDQN Model made by Phil from Machine Learning with Phil
+For details, go to his video: youtube.com/watch?v=H9uCYnG3LlE
+Here's the repo: github.com/philtabor/Youtube-Code-Repository/blob/master/ReinforcementLearning/DeepQLearning/dueling_ddqn_torch.py
+"""
+
 import torch as T
 import torch.nn as nn
 import torch.nn.functional as F

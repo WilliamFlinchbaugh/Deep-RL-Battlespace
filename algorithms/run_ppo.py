@@ -2,6 +2,7 @@ import os
 import datetime
 from algorithms.ppo import Agent
 from utils import plot_data
+from pprint import pprint
 
 GAMMA = 0.99
 ALPHA = 0.0003
@@ -10,20 +11,31 @@ POLICY_CLIP = 0.2
 BATCH_SIZE = 64
 N_EPOCHS = 10
 
-def train(env, n_games=10000):
+def train(env, env_config, n_games=10000, gamma=GAMMA, alpha=ALPHA, gae_lambda=GAE_LAMBDA, policy_clip=POLICY_CLIP, batch_size=BATCH_SIZE, n_epochs=N_EPOCHS):
     # Create a new folder for the model
     for i in range(1, 100):
         if not os.path.exists(f'models/ppo_{i}'):
             FOLDER = f'models/ppo_{i}'
             os.makedirs(FOLDER)
+            os.makedirs(f'{FOLDER}/training_vids')
             break
+
+    # Save the configuration of the model
+    hyperparams = {'gamma': gamma, 'alpha': alpha, 'gae_lambda': gae_lambda, 'policy_clip': policy_clip, 'batch_size': batch_size, 'n_epochs': n_epochs}
+    f = open(f"{FOLDER}/config.txt", 'a')
+    f.write("ALGORITHM: PPO\n\nENV CONFIG:\n")
+    pprint(env_config, stream=f)
+    f.write("\nHYPERPARAMETERS:\n")
+    pprint(hyperparams, stream=f)
+    f.close()
 
     n_actions = env.n_actions
 
+    # Instantiate agents
     agents = {}
     for agent_id in env.possible_agents:
-        agents[agent_id] = Agent(n_actions, [env.obs_size], GAMMA, ALPHA, GAE_LAMBDA,
-                    POLICY_CLIP, BATCH_SIZE, N_EPOCHS, chkpt_dir=FOLDER, name=agent_id)
+        agents[agent_id] = Agent(n_actions, [env.obs_size], gamma, alpha, gae_lambda,
+                    policy_clip, batch_size, n_epochs, chkpt_dir=FOLDER, name=agent_id)
 
     timesteps_cntr = 0
     wins = {
@@ -102,8 +114,10 @@ def train(env, n_games=10000):
             # Visualize 1 game every 1000 trained games
             if env.total_games % 1000 == 0:
                 env.show = True
+                env.start_recording(f'{FOLDER}/training_vids/{i+1}.mp4')
 
         elif env.show:
+            env.export_video()
             env.show = False
             env.close()
 
@@ -120,6 +134,7 @@ def evaluate(env, model_path, eval_games=10):
                     POLICY_CLIP, BATCH_SIZE, N_EPOCHS, chkpt_dir=model_path, name=agent_id)
         agents[agent_id].load_models()
 
+    env.start_recording(f'{model_path}/eval_vid.mp4')
     for i in range(eval_games):
         obs = env.reset()
 
@@ -133,4 +148,5 @@ def evaluate(env, model_path, eval_games=10):
 
             obs = obs_
 
+    env.export_video()
     env.close()
