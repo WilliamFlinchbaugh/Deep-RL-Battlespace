@@ -88,7 +88,7 @@ def train(env, env_config, n_games=10000, gamma=GAMMA, alpha=ALPHA, gae_lambda=G
             score_history[id].append(scores[id])
 
         # Print out progress and save models
-        if env.total_games % 50 == 0 and env.total_games > 0:
+        if env.total_games % 100 == 0 and env.total_games > 0:
             now = datetime.datetime.now()
             elapsed = now - start # Elapsed time in seconds
             s = elapsed.total_seconds()
@@ -168,5 +168,5 @@ if __name__ == '__main__':
 
     env = battle_env.parallel_env(**env_config)
 
-    train(env=env, env_config=env_config, n_games=75000)
+    train(env=env, env_config=env_config, n_games=50000)
     # evaluate(env=env, model_path='models/ppo_shared_2', eval_games=10)
