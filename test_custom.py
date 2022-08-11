@@ -1,7 +1,7 @@
 import os
 import datetime
 import battle_env
-import WIP_custom_model as model
+import algorithms.WIP_custom_model as model
 from utils import plot_data
 from pprint import pprint
 
