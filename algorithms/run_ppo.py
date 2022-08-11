@@ -22,12 +22,11 @@ def train(env, env_config, n_games=10000, gamma=GAMMA, alpha=ALPHA, gae_lambda=G
 
     # Save the configuration of the model
     hyperparams = {'gamma': gamma, 'alpha': alpha, 'gae_lambda': gae_lambda, 'policy_clip': policy_clip, 'batch_size': batch_size, 'n_epochs': n_epochs}
-    f = open(f"{FOLDER}/config.txt", 'a')
-    f.write("ALGORITHM: PPO\n\nENV CONFIG:\n")
-    pprint(env_config, stream=f)
-    f.write("\nHYPERPARAMETERS:\n")
-    pprint(hyperparams, stream=f)
-    f.close()
+    with open(f"{FOLDER}/config.txt", 'a') as f:
+        f.write("ALGORITHM: PPO\n\nENV CONFIG:\n")
+        pprint(env_config, stream=f)
+        f.write("\nHYPERPARAMETERS:\n")
+        pprint(hyperparams, stream=f)
 
     n_actions = env.n_actions
 
