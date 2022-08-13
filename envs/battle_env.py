@@ -694,15 +694,21 @@ class parallel_env(ParallelEnv, EzPickle):
             dones (dict): Dictionary indicating which agents are done and should be skipped over
             infos (dict): Used for extra info (not utilized)
         """
+        # Initialize all rewards to 0
+        rewards = {agent: 0 for agent in self.possible_agents}
+
+        # If env is done just return some empty info
+        if self.env_done:
+            observations = {agent: self.observe(agent) for agent in self.possible_agents} # Get observation for each agent
+            infos = {agent: {} for agent in self.possible_agents} # Empty info for each agent
+            return observations, rewards, self.dones, infos 
+
         # If passing no actions or no agents alive, then we have a tie because all agents are dead
         if len(actions) == 0 or len(self.agents) == 0:
             self.tie()
             observations = {agent: self.observe(agent) for agent in self.possible_agents} # Get observation for each agent
             infos = {agent: {} for agent in self.possible_agents} # Empty info for each agent
             return observations, rewards, self.dones, infos 
-
-        # Initialize all rewards to 0
-        rewards = {agent: 0 for agent in self.possible_agents}
 
         # Increment time
         self.total_time += self.time_step
