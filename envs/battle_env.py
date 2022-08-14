@@ -70,7 +70,7 @@ class parallel_env(ParallelEnv, EzPickle):
         "name": "battle_env_v1"
     }
 
-    def __init__(self, n_agents=1, show=False, hit_base_reward=10, hit_plane_reward=2, miss_punishment=0, die_punishment=-3, fps=20):
+    def __init__(self, n_agents=1, show=False, hit_base_reward=100, hit_plane_reward=10, miss_punishment=-1, die_punishment=-5, fps=20):
         """Initializes values, observation spaces, action spaces, etc.
 
         Args:
