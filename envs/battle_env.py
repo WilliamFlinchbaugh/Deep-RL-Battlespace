@@ -1,5 +1,5 @@
-from sprites import Plane, Base, Bullet, Explosion
-import sprites
+from envs.sprites import Plane, Base, Bullet, Explosion
+import envs.sprites as sprites
 import pygame
 from pygame.locals import *
 import numpy as np
