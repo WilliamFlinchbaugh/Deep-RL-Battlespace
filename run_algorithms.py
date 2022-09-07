@@ -1,12 +1,11 @@
 import envs.battle_env as battle_env
-from algorithms import run_dueling_ddqn, run_ppo, run_dqn
+from algorithms import run_dueling_ddqn, run_ppo
 
 def main():
-    # Implemented algorithms: dqn, dueling_ddqn, ppo
+    # Implemented algorithms: dueling_ddqn, ppo (both are completely decentralized)
     ALGORITHM = 'ppo'
 
     algorithms = {
-        'dqn':run_dqn,
         'dueling_ddqn':run_dueling_ddqn,
         'ppo':run_ppo
     }
