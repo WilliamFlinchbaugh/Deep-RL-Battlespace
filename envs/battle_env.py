@@ -1,5 +1,5 @@
-from sprites import Plane, Base, Bullet, Explosion
-import sprites
+from envs.sprites import Plane, Base, Bullet, Explosion
+import envs.sprites as sprites
 import pygame
 from pygame.locals import *
 import numpy as np
@@ -85,8 +85,9 @@ class parallel_env(ParallelEnv, EzPickle):
         EzPickle.__init__(self, n_agents, show, hit_base_reward, hit_plane_reward, miss_punishment, die_punishment, fps)
         self.n_agents = n_agents # n agents per team
 
-        pygame.init()
+        pygame.init() # Initialize pygame module
 
+        # Set the hitpoints for the planes and bases
         self.base_hp = 4 * self.n_agents
         self.plane_hp = 2
 
@@ -116,8 +117,6 @@ class parallel_env(ParallelEnv, EzPickle):
             self.team_map[x] = 'blue'
             self.team['blue']['planes'][x] = Plane('blue', self.plane_hp, x)
 
-        self.agent_name_mapping = dict(zip(self.agents, list(range(self.n_agents))))
-
         """
         Observation space contains the following:
         - Distance to enemy base
@@ -137,13 +136,10 @@ class parallel_env(ParallelEnv, EzPickle):
         
         """
         Action space contains the following:
-        - 1: Forward
-        - 2: Shoot
-        - 3: Turn Left
-        - 4: Turn Right
-
-        MADDPG uses continuous actions, so we use force_discrete_action to configure that
-        The actions will be a np.array of values and the max value will be taken as the action
+        - 0: Forward
+        - 1: Shoot
+        - 2: Turn Left
+        - 3: Turn Right
         """
 
         self.n_actions = 4
@@ -377,7 +373,7 @@ class parallel_env(ParallelEnv, EzPickle):
         if action == 0: 
             agent.forward(self.speed, self.time_step) # Move the plane forward
 
-         # --------------- SHOOT ---------------
+        # --------------- SHOOT ---------------
         elif action == 1:
             self.bullets.append(Bullet(agent_pos[0], agent_pos[1], agent_dir, self.bullet_speed, team, self.team[oteam], agent_id)) # Shoot a bullet
             agent.forward(self.speed, self.time_step) # Move the plane forward
@@ -430,6 +426,10 @@ class parallel_env(ParallelEnv, EzPickle):
         pygame.display.quit()
 
     def tie(self):
+        """
+        Ends the game in a tie
+        Sets all the agents to done and adds to the tie total
+        """
         self.winner = 'tie'
         self.total_games += 1 
         self.ties += 1
@@ -439,6 +439,13 @@ class parallel_env(ParallelEnv, EzPickle):
             self.render()
 
     def win(self, winner):
+        """
+        Ends the game in a win for winner
+        Sets all the agents to done and adds to the win total for the winner
+
+        Args:
+            winner (string): Represents the team that won the game
+        """
         self.winner = winner
         self.total_games += 1 
         self.team[winner]['wins'] += 1
@@ -451,12 +458,14 @@ class parallel_env(ParallelEnv, EzPickle):
         """
         Renders the pygame visuals
         """
-        # Just to ensure it won't render if self.show == False
+
+        # Just to ensure it won't render if self.show is False
         if not self.show: 
             self.rendering = False
             return
 
-        if not self.rendering: # We need to initialize everything if not yet rendering
+        # We need to initialize everything if not yet rendering
+        if not self.rendering: 
             self.rendering = True
             pygame.display.init()
             pygame.font.init()
@@ -503,18 +512,30 @@ class parallel_env(ParallelEnv, EzPickle):
         if self.winner != 'none':
             self.winner_screen()
 
-        # Update the display, update the video, and tick the clock with the framerate
+        # Update the display, update the video if recording, and tick the clock with the framerate
         if self.recording:
             self.video.update(cv2.cvtColor(pygame.surfarray.pixels3d(self.display).swapaxes(0, 1), cv2.COLOR_BGR2RGB))
         pygame.display.update()
         self.clock.tick(self.fps)
 
     def start_recording(self, path):
+        """
+        Starts recording a video of the rendering
+
+        Args:
+            path (string): The path to save the video to
+        """
         print('Starting recording...')
         self.recording = True
         self.video = vidmaker.Video(path, fps=self.fps, resolution=(self.width, self.height))
     
     def export_video(self):
-        print('Exporting video!')
-        self.recording = False
-        self.video.export()
+        """
+        Exports the video if recording
+        """
+        if self.recording:
+            print('Exporting video!')
+            self.recording = False
+            self.video.export()
+        else:
+            print('Not recording!')

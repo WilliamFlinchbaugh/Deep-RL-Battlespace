@@ -13,7 +13,7 @@ def main():
 
     env = battle_env.parallel_env(**cf)
 
-    env.start_recording('test.mp4')
+    # env.start_recording('test.mp4')
     for _ in range(5):
         observations = env.reset()
         actions = {}
@@ -22,7 +22,7 @@ def main():
                 actions[agent] = env.action_space(agent).sample()
             observations, rewards, dones, infos = env.step(actions)
 
-    env.export_video()
+    # env.export_video()
 
 if __name__ == '__main__':
     main()

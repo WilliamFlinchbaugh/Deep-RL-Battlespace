@@ -20,17 +20,13 @@ Essentially, CAE contacted UNT a while back about research with a deep reinforce
 At the start of 2022, Rebecca and Mounika created a basic q-learning model with a relatively basic environment. The graphics were only still images from matplotlib.
 In Summer 2022, I essentially completely transformed everything. I adapted the old environment to an OpenAI Gym environment (agent-vs-random and agent-vs-pretrained-model) that uses pygame. I trained the one agent using Stable-Baselines3 PPO and DQN. First we trained it against an agent using random choice (it had the choices forward, shoot, to enemy base, and to enemy plane). Then, I took that trained agent and placed it into the blue plane and trained the red plane against it.
  
-However, we needed multi-agent reinforcement learning (MARL) to add more planes. So, I turned that Gym environment into a PettingZoo environment. There were issues training the agents using Stable-Baselines3 because it doesn’t really support MARL, but I got it sorta working. I’m using PPO right now, but it takes a long time to train because of the large observation space and the agents don’t seem to really be learning.
- 
-We’re at the point where basically the environment works as intended, but the behavior after training is not very desirable. We pretty much need a custom Pytorch model that supports multiple agents. Once that’s done and there’s interesting behavior, CAE should be contacted and a paper should be written.
+However, we needed multi-agent reinforcement learning (MARL) to add more planes. So, I turned that Gym environment into a PettingZoo environment. There were issues training the agents using Stable-Baselines3 because it doesn’t really support decentralized MARL.
  
 There was a small effort on a Unity game (not in repo) because Unity’s ML-Agents seems much better for this application then pygame and PettingZoo. PettingZoo and other MARL frameworks are also still in their early development stages. However, we didn’t make much progress on that and we didn’t want to throw away our current progress. Unity is likely an easier approach overall, though.
  
-I started writing a custom MADDPG model based on a tutorial (listed below) and it runs, but doesn’t seem to learn much. It’s a bit janky since DDPG is meant for continuous action spaces. I also created a DQN model for multi-agent that seems to work, but has to train for a really really long time. Since it’s DQN, the agents might not learn to collaborate.
+I implemented DQN, dueling DDQN, and PPO models for MARL training. The agents seem to be giving decent results, although we haven’t done any hyperparameter tuning. The models are Pytorch models that I stole from Machine Learning with Phil. Each agent has its networks which means it is completely decentralized. DQN is incredibly slow and not great, the dueling DDQN gives good results and runs quickly, but takes longer to converge, and the PPO takes a long time to run but converges much quicker.
  
-I just started using a dueling DDQN model for the agents which seems to actually be giving decent results. It’s essentially just a torch model that I stole from ML with Phil. Each agent has its own DDQN model which means it is completely decentralized. I also implemented a PPO model which takes much longer to run, however the agents converge 4x quicker. In the future, we will want some sort of semi-centralized system where the agents on the same team will share rewards so that they will collaborate. Right now the agents are completely decentralized.
- 
-I made the process for training and evaluating incredibly simple now. You literally just go into the run_algorithms.py, pick whichever algorithm you want, and hit run. You can change the number of games that it will run for. You can change the reward values and stuff from that file too. We might want to add more algorithms to that like A3C (Phil has an A3C model that we could rip)
+I made the process for training and evaluating incredibly simple now. You literally just go into the run_algorithms.py, pick whichever algorithm you want, and hit run. You can change the number of games that it will run for. You can change the reward values and stuff from that file too. We could try more algorithms, however the PPO seems to work well for now. The next step is likely a semi-centralized system where the agents on the same team share rewards and can ‘view’ the other teammates’ observations. This will incentivize and allow for collaboration between agents. As of right now, the models are all completely decentralized with no ‘sharing’.
  
 # Steps going forwards:
 A semi-centralized model where the agents on each team share rewards in order to promote collaboration
@@ -71,18 +67,9 @@ Then, open an anaconda prompt from start menu and run
  
 That should open up VSCode through anaconda. After that, you should only need to change the interpreter in the bottom right to miniconda3 base.
  
-As for dependencies, it gets a bit complicated with PZ, Gym, SB3, and Supersuit. Supersuit is only needed to train with SB3 because it contains the black-death wrapper. The requirements are in the requirements.txt file. To install the dependencies, open a terminal in the git directory and run:
+To install the dependencies for this project, run the following command:
  
 `pip install -r requirements.txt`
-
- 
-There is an issue with the above command currently because there are dependency issues, so you might need to pip install each package independently. In addition, you might have issues installing SuperSuit:
- 
-If on Windows, you'll need to install the Visual Studio Build Tools so that you can install tinyscaler (dependency for supersuit): https://visualstudio.microsoft.com/downloads/
- 
-If on Linux, you just need to install gcc by running:
- 
-`sudo apt-get install gcc`
 
  
 If you need any help getting the code to run, feel free to email me at WilliamFlinchbaugh@gmail.com or message me on discord: BallpointPen#6113
@@ -112,22 +99,14 @@ The Stable-Baselines3 docs are pretty good for understanding how everything work
  
 https://stable-baselines3.readthedocs.io/en/master/index.html
  
-This video outlines MADDPG implementation in Pytorch:
- 
-https://www.youtube.com/watch?v=tZTQ6S9PfkE
- 
-MADDPG uses a centralized critic, but decentralized actors which is good for our application
- 
-It’s important to note that we cannot use centralized actors because there are two teams
- 
-Here’s the paper that this video covers:
- 
-https://arxiv.org/pdf/1706.02275.pdf
- 
-The same guy, Machine Learning with Phil, also made the DQN, Dueling DDQN, and PPO that I used with MARL. Here are the links to his channel and the repo that has the algorithms I used:
+Machine Learning with Phil made the DQN, Dueling DDQN, and PPO that I used to create multiple decentralized agents. Here are the links to his channel and the repo that has the algorithms I used:
  
 https://www.youtube.com/watch?v=H9uCYnG3LlE
  
 https://www.youtube.com/watch?v=wc-FxNENg9U
  
 https://github.com/philtabor/Youtube-Code-Repository/tree/master/ReinforcementLearning
+ 
+This video has a perfect explanation of decentralized vs centralized MARL. This also can explain why there’s issues with our current decentralized approach:
+ 
+https://www.youtube.com/watch?v=qgb0gyrpiGk
