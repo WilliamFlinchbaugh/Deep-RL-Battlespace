@@ -12,6 +12,7 @@ def main():
     }
 
     env = battle_env.parallel_env(**cf)
+    print(env.observation_space("plane0").shape[0])
 
     # env.start_recording('test.mp4')
     for _ in range(5):
