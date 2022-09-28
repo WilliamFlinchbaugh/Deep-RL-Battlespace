@@ -3,7 +3,7 @@ import torch as T
 import numpy as np
 
 class NetworkedAgent:
-    def __init__(self, agent_list, n_actions, obs_len, name, n_agents, tau=0.01, gamma=0.95, batch_size=128):
+    def __init__(self, agent_list, n_actions, obs_len, name, n_agents, tau=0.01, gamma=0.99, batch_size=128, chkpt_dir='tmp/maddpg'):
         self.agent_list = agent_list
         self.n_actions = n_actions
         self.obs_len = obs_len
@@ -13,10 +13,10 @@ class NetworkedAgent:
         self.gamma = gamma
         self.timestep = 0
 
-        self.actor = ActorNetwork(obs_len, n_actions, name=f'actor_{name}')
-        self.target_actor = ActorNetwork(obs_len, n_actions, name=f'target_actor_{name}')
-        self.critic = CriticNetwork(obs_len, n_actions, n_agents, name=f'critic_{name}')
-        self.target_critic = CriticNetwork(obs_len, n_actions, n_agents, name=f'target_critic_{name}')
+        self.actor = ActorNetwork(obs_len, n_actions, chkpt_dir=chkpt_dir, name=f'actor_{name}')
+        self.target_actor = ActorNetwork(obs_len, n_actions, chkpt_dir=chkpt_dir, name=f'target_actor_{name}')
+        self.critic = CriticNetwork(obs_len, n_actions, n_agents, chkpt_dir=chkpt_dir, name=f'critic_{name}')
+        self.target_critic = CriticNetwork(obs_len, n_actions, n_agents, chkpt_dir=chkpt_dir, name=f'target_critic_{name}')
 
         self.update_network_parameters(tau=1)
     

@@ -5,12 +5,12 @@ import torch as T
 import torch.nn.functional as F
 
 class Team:
-    def __init__(self, agent_list, obs_size, n_actions, critic_dims, mem_size=100000, batch_size=64):
+    def __init__(self, agent_list, obs_size, n_actions, critic_dims, mem_size=100000, batch_size=64, chkpt_dir='tmp/maddpg'):
         self.batch_size = batch_size
         self.agent_list = agent_list
         self.agents = {}
         for idx, agent in enumerate(agent_list):
-            self.agents[agent] = NetworkedAgent(agent_list, n_actions, obs_size, agent, len(agent_list))
+            self.agents[agent] = NetworkedAgent(agent_list, n_actions, obs_size, agent, len(agent_list), chkpt_dir=chkpt_dir)
         self.memory = ReplayBuffer(mem_size, batch_size, agent_list, obs_size, critic_dims, n_actions)
 
     def choose_actions(self, observations):
