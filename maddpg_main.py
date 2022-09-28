@@ -9,12 +9,12 @@ def merge_dicts(dict1, dict2):
 def main():
     env_config = {
         'n_agents': 2, # Number of planes on each team
-        'show': True, # Show visuals
+        'show': False, # Show visuals
         'hit_base_reward': 100, # Reward value for hitting enemy base
-        'hit_plane_reward': 13, # Reward value for hitting enemy plane
-        'miss_punishment': -3, # Punishment value for missing a shot
+        'hit_plane_reward': 20, # Reward value for hitting enemy plane
+        'miss_punishment': 0, # Punishment value for missing a shot
         'die_punishment': 0, # Punishment value for a plane dying
-        'fps': 100, # Framerate that the visuals run at
+        'fps': 120, # Framerate that the visuals run at
         'continuous_input': True
     }
 
