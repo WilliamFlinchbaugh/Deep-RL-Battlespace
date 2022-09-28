@@ -70,7 +70,7 @@ class parallel_env(ParallelEnv, EzPickle):
         "name": "battle_env_v1"
     }
 
-    def __init__(self, n_agents=1, show=False, hit_base_reward=100, hit_plane_reward=10, miss_punishment=-1, die_punishment=-5, fps=20):
+    def __init__(self, n_agents=1, show=False, hit_base_reward=100, hit_plane_reward=10, miss_punishment=-1, die_punishment=-5, fps=20, continuous_input=False):
         """Initializes values, observation spaces, action spaces, etc.
 
         Args:
@@ -147,6 +147,7 @@ class parallel_env(ParallelEnv, EzPickle):
         self.action_spaces = {agent: action_space for agent in self.possible_agents} # Dictionary containing an action space for each agent
         
         # ---------- Initialize values ----------
+        self.continuous_input = continuous_input
         self.width = sprites.DISP_WIDTH
         self.height = sprites.DISP_HEIGHT
         self.max_time = 10 + (self.n_agents * 2)
@@ -284,6 +285,8 @@ class parallel_env(ParallelEnv, EzPickle):
             return observations, rewards, self.dones, infos 
 
         # If passing no actions or no agents alive, then we have a tie because all agents are dead
+        if self.continuous_input:
+            actions = self.make_discrete(actions)
         if len(actions) == 0 or len(self.agents) == 0:
             self.tie()
             observations = {agent: self.observe(agent) for agent in self.possible_agents} # Get observation for each agent
@@ -424,6 +427,12 @@ class parallel_env(ParallelEnv, EzPickle):
         Closes the pygame display
         """
         pygame.display.quit()
+    
+    def make_discrete(self, actions_dict):
+        discrete_actions_dict = {}
+        for agent, action in actions_dict.items():
+            discrete_actions_dict[agent] = np.argmax(action)
+        return discrete_actions_dict
 
     def tie(self):
         """

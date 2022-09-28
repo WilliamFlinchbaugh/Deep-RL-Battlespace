@@ -1,14 +1,17 @@
-from buffer import ReplayBuffer
-from networks import CriticNetwork
-from agent import NetworkedAgent
+from maddpg.buffer import ReplayBuffer
+from maddpg.networks import CriticNetwork
+from maddpg.agent import NetworkedAgent
+import torch as T
+import torch.nn.functional as F
 
 class Team:
-    def __init__(self, agent_list, obs_spaces, n_actions, mem_size=1000000, batch_size=128, gamma=0.95):
+    def __init__(self, agent_list, obs_size, n_actions, critic_dims, mem_size=100000, batch_size=64):
+        self.batch_size = batch_size
         self.agent_list = agent_list
         self.agents = {}
         for idx, agent in enumerate(agent_list):
-            self.agents[agent] = NetworkedAgent(agent_list, n_actions, obs_spaces[idx].shape[0], agent)
-        self.memory = ReplayBuffer(mem_size, batch_size, agent_list, obs_spaces)
+            self.agents[agent] = NetworkedAgent(agent_list, n_actions, obs_size, agent, len(agent_list))
+        self.memory = ReplayBuffer(mem_size, batch_size, agent_list, obs_size, critic_dims, n_actions)
 
     def choose_actions(self, observations):
         actions = {}
@@ -20,43 +23,61 @@ class Team:
         if not self.memory.is_ready():
             return
 
+        T.autograd.set_detect_anomaly(True)
+
         device = self.agents[self.agent_list[0]].actor.device
 
-        states, critic_states, actions, rewards, new_states, critic_new_states, dones = self.memory.sample()
-        
-        for idx, agent in self.agents.items():
-            _critic_states = T.tensor(critic_states, dtype=T.float).to(self.actor.device)
-            _critic_new_states = T.tensor(critic_new_states, dtype=T.float).to(self.actor.device)
-            _states = T.tensor(states[idx], dtype=T.float).to(self.actor.device)
-            _actions = T.tensor(actions[idx], dtype=T.float).to(self.actor.device)
-            _rewards = T.tensor(rewards[idx], dtype=T.float).to(self.actor.device)
-            _new_states = T.tensor(new_states[idx], dtype=T.float).to(self.actor.device)
-            _dones = T.tensor(dones[idx], dtype=T.bool).to(self.actor.device)
+        actor_states, states, actions, rewards, actor_new_states, states_, dones = self.memory.sample()
 
-            target_actions = agent.target_actor.forward(_critic_new_states)
-            critic_value_ = agent.target_critic.forward(_critic_new_states, target_actions)
-            critic_value = agent.critic.forward(_critic_states, _actions)
+        states = T.tensor(states, dtype=T.float).to(device)
+        actions = T.tensor(actions, dtype=T.float).to(device)
+        rewards = T.tensor(rewards, dtype=T.float).to(device)
+        states_ = T.tensor(states_, dtype=T.float).to(device)
+        dones = T.tensor(dones).to(device)
 
-            critic_value_[dones] = 0.0
-            critic_value_ = critic_value_.view(-1)
+        all_agents_new_actions = []
+        all_agents_new_mu_actions = []
+        old_agents_actions = []
 
-            target = rewards + self.gamma*critic_value_
-            target = target.view(self.batch_size, 1)
+        for idx, agent_id in enumerate(self.agent_list):
+            agent = self.agents[agent_id]
+            new_states = T.tensor(actor_new_states[idx], dtype=T.float).to(device)
+            new_pi = agent.target_actor.forward(new_states)
+            all_agents_new_actions.append(new_pi)
 
-            self.critic.optimizer.zero_grad()
+            mu_states = T.tensor(actor_states[idx], dtype=T.float).to(device)
+            pi = agent.actor.forward(mu_states)
+            all_agents_new_mu_actions.append(pi)
+
+            old_agents_actions.append(actions[idx])
+
+        new_actions = T.cat([acts for acts in all_agents_new_actions], dim=1)
+        mu = T.cat([acts for acts in all_agents_new_mu_actions], dim=1)
+        old_actions = T.cat([acts for acts in old_agents_actions], dim=1)
+
+        for idx, agent_id in enumerate(self.agent_list):
+            self.agents[agent_id].actor.optimizer.zero_grad()
+
+        for idx, agent_id in enumerate(self.agent_list):
+            agent = self.agents[agent_id]
+
+            critic_value_ = agent.target_critic.forward(states_, new_actions).flatten()
+            critic_value_[dones[:,0]] = 0.0
+            critic_value = agent.critic.forward(states, old_actions).flatten()
+
+            target = rewards[:,idx] + agent.gamma*critic_value_
             critic_loss = F.mse_loss(target, critic_value)
-            critic_loss.backward()
-            self.critic.optimizer.step()
-            
-            self.actor.optimizer.zero_grad()
-            actor_loss = -self.critic.forward(states, self.actor.forward(states))
-            actor_loss = T.mean(actor_loss)
-            actor_loss.backward()
-            self.actor.optimizer.step()
+            agent.critic.optimizer.zero_grad()
+            critic_loss.backward(retain_graph=True)
+            agent.critic.optimizer.step()
 
-            self.update_network_parameters()
-        
+            actor_loss = agent.critic.forward(states, mu).flatten()
+            actor_loss = -T.mean(actor_loss)
+            actor_loss.backward(retain_graph=True)
 
+        for idx, agent_id in enumerate(self.agent_list):
+            self.agents[agent_id].actor.optimizer.step()
+            self.agents[agent_id].update_network_parameters()
 
     def save_models(self):
         for agent in self.agents.values():

@@ -1,19 +1,22 @@
-from networks import ActorNetwork, CriticNetwork
+from maddpg.networks import ActorNetwork, CriticNetwork
+import torch as T
+import numpy as np
 
 class NetworkedAgent:
-    def __init__(self, agent_list, n_actions, obs_len, name, tau=0.01, batch_size=128):
+    def __init__(self, agent_list, n_actions, obs_len, name, n_agents, tau=0.01, gamma=0.95, batch_size=128):
         self.agent_list = agent_list
-        self.n_action = n_actions
+        self.n_actions = n_actions
         self.obs_len = obs_len
         self.name = name
         self.tau = tau
         self.batch_size = batch_size
+        self.gamma = gamma
         self.timestep = 0
 
         self.actor = ActorNetwork(obs_len, n_actions, name=f'actor_{name}')
         self.target_actor = ActorNetwork(obs_len, n_actions, name=f'target_actor_{name}')
-        self.critic = CriticNetwork(obs_len, n_actions, name=f'critic_{name}')
-        self.target_critic = CriticNetwork(obs_len, n_actions, name=f'target_critic_{name}')
+        self.critic = CriticNetwork(obs_len, n_actions, n_agents, name=f'critic_{name}')
+        self.target_critic = CriticNetwork(obs_len, n_actions, n_agents, name=f'target_critic_{name}')
 
         self.update_network_parameters(tau=1)
     
@@ -22,7 +25,7 @@ class NetworkedAgent:
         actions = self.actor.forward(state)
         noise = T.rand(self.n_actions).to(self.actor.device)
         action = actions + noise
-        return action.cpu().detach().numpy()[0]
+        return action.detach().cpu().numpy()[0]
 
     def update_network_parameters(self, tau=None):
         if tau is None:
