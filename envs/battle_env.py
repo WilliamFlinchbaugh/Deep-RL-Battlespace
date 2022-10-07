@@ -534,7 +534,7 @@ class parallel_env(ParallelEnv, EzPickle):
         Args:
             path (string): The path to save the video to
         """
-        print('Starting recording...')
+        print('-Starting recording-\n')
         self.recording = True
         self.video = vidmaker.Video(path, fps=self.fps, resolution=(self.width, self.height))
     
@@ -543,7 +543,7 @@ class parallel_env(ParallelEnv, EzPickle):
         Exports the video if recording
         """
         if self.recording:
-            print('Exporting video!')
+            print('-Exporting video-\n')
             self.recording = False
             self.video.export()
         else:
