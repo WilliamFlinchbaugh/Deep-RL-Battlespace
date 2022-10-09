@@ -16,7 +16,7 @@ Max Levine (Worked on Unity game, REU student)
 # Background of project:
 Essentially, CAE contacted UNT a while back about research with a deep reinforcement learning model that could help train pilots in aviation battle scenarios. The funding never went through, so the goal is to create a working model to pitch back to CAE. We want funding from them for a paper. They are also potentially looking for interns.
  
-# Where we are at:
+# Status/Updates:
 At the start of 2022, Rebecca and Mounika created a basic q-learning model with a relatively basic environment. The graphics were only still images from matplotlib.
 In Summer 2022, I essentially completely transformed everything. I adapted the old environment to an OpenAI Gym environment (agent-vs-random and agent-vs-pretrained-model) that uses pygame. I trained the one agent using Stable-Baselines3 PPO and DQN. First we trained it against an agent using random choice (it had the choices forward, shoot, to enemy base, and to enemy plane). Then, I took that trained agent and placed it into the blue plane and trained the red plane against it.
  
@@ -28,23 +28,16 @@ I implemented DQN, dueling DDQN, and PPO models for MARL training. The agents se
  
 I made the process for training and evaluating incredibly simple now. You literally just go into the run_algorithms.py, pick whichever algorithm you want, and hit run. You can change the number of games that it will run for. You can change the reward values and stuff from that file too. We could try more algorithms, however the PPO seems to work well for now. The next step is likely a semi-centralized system where the agents on the same team share rewards and can ‘view’ the other teammates’ observations. This will incentivize and allow for collaboration between agents. As of right now, the models are all completely decentralized with no ‘sharing’.
  
-# Steps going forwards:
-A semi-centralized model where the agents on each team share rewards in order to promote collaboration
+I’ve just now implemented an MADDPG model which seems to be working quite well. Each agent has an actor and a critic where the actor receives only that agent’s observations, but the critic receives the observations of the rest of the team.
  
-Larger state space (including friendly plane information)
+# Steps going forwards:
+Implementing other “networked” MARL algorithms (actor-attention-critic, LToS, etc.)
+ 
+Continuous action space for turning
  
 Assigning roles to each agent (defender, attacker, etc.)
  
 Realism (More accurate numbers for speeds, angles, etc.)
- 
-# Branches:
-There’s 3 important branches: agent-vs-random, agent-vs-pretrained-model, and multi-agent
- 
-agent-vs-random is just a single agent training against a random action blue plane
- 
-agent-vs-pretrained-model has the blue agent make decisions based off of a pre-trained model that was trained against a random choice blue plane (PPO_1 is the pre-trained model)
- 
-multi-agent uses PettingZoo instead of OpenAI Gym and trains multiple planes (it’s way more complex)
  
 # Installation Guide:
 We’ve been using Anaconda in Python 3.9.12 to run the code. I recommend installing miniconda3 and then using VSCode with the conda interpreter. Install miniconda3 from here:
