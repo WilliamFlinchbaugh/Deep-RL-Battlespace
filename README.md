@@ -22,7 +22,7 @@ In Summer 2022, I essentially completely transformed everything. I adapted the o
  
 However, we needed multi-agent reinforcement learning (MARL) to add more planes. So, I turned that Gym environment into a PettingZoo environment. There were issues training the agents using Stable-Baselines3 because it doesn’t really support decentralized MARL.
  
-There was a small effort on a Unity game (not in repo) because Unity’s ML-Agents seems much better for this application then pygame and PettingZoo. PettingZoo and other MARL frameworks are also still in their early development stages. However, we didn’t make much progress on that and we didn’t want to throw away our current progress. Unity is likely an easier approach overall, though.
+There was a small effort on a Unity game (not in repo) because Unity’s ML-Agents seems much better for this application then pygame and PettingZoo. PettingZoo and other MARL frameworks are also still in their early development stages. However, we didn’t make much progress on that and we didn’t want to throw away our current progress. Unity is likely an easier approach overall, especially if there are plans to create a 3d environment.
  
 I implemented DQN, dueling DDQN, and PPO models for MARL training. The agents seem to be giving decent results, although we haven’t done any hyperparameter tuning. The models are Pytorch models that I stole from Machine Learning with Phil. Each agent has its networks which means it is completely decentralized. DQN is incredibly slow and not great, the dueling DDQN gives good results and runs quickly, but takes longer to converge, and the PPO takes a long time to run but converges much quicker.
  
