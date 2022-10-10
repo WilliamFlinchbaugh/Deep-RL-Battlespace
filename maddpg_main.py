@@ -10,15 +10,15 @@ def merge_dicts(dict1, dict2):
     dict2.update(dict1)
     return dict2
 
-GAMMA = 0.99
-LEARNING_RATE = 0.001
+GAMMA = 0.97
+LEARNING_RATE = 0.005
 BUFFER_SIZE = 1000000
-BATCH_SIZE = 64
+BATCH_SIZE = 100
 PRINT_INTERVAL = 100
 SAVE_INTERVAL = 100
 LEARN_INTERVAL = 20
 SHOW_INTERVAL = 1000
-N_GAMES = 100000
+N_GAMES = 200000
 
 env_config = {
     'n_agents': 2, # Number of planes on each team
@@ -27,6 +27,7 @@ env_config = {
     'hit_plane_reward': 30, # Reward value for hitting enemy plane
     'miss_punishment': -1, # Punishment value for missing a shot
     'die_punishment': 0, # Punishment value for a plane dying
+    'lose_punishment': -30, # Punishment for losing the game (The goal is to possibly defend the base)
     'fps': 20, # Framerate that the visuals run at
     'continuous_input': True
 }
@@ -69,7 +70,7 @@ def main():
     print("\n=====================\n| Starting Training |\n=====================\n")
     start = datetime.datetime.now()
 
-    for i in range(N_GAMES):
+    for i in range(N_GAMES+1):
         observations = env.reset()
 
         red_score = 0
@@ -159,7 +160,7 @@ def main():
         "blue": blue_scores
     }
 
-    plot_data(FOLDER + '/scores.svg', score_dict=score_dict)
+    plot_data(score_dict, FOLDER + '/scores.svg')
 
 if __name__ == '__main__':
     main()
