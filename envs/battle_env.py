@@ -70,7 +70,7 @@ class parallel_env(ParallelEnv, EzPickle):
         "name": "battle_env_v1"
     }
 
-    def __init__(self, n_agents=1, show=False, hit_base_reward=100, hit_plane_reward=10, miss_punishment=-1, die_punishment=-5, lose_punishment=-20, fps=20, continuous_input=False):
+    def __init__(self, n_agents=1, show=False, hit_base_reward=100, hit_plane_reward=10, miss_punishment=-1, die_punishment=-5, lose_punishment=-20, fps=20, continuous_actions=False):
         """Initializes values, observation spaces, action spaces, etc.
 
         Args:
@@ -88,8 +88,8 @@ class parallel_env(ParallelEnv, EzPickle):
         pygame.init() # Initialize pygame module
 
         # Set the hitpoints for the planes and bases
-        self.base_hp = 4 * self.n_agents
-        self.plane_hp = 2
+        self.base_hp = 5 * self.n_agents
+        self.plane_hp = 4
 
         # Initializing the team dictionaries
         self.team = {}
@@ -141,13 +141,28 @@ class parallel_env(ParallelEnv, EzPickle):
         - 2: Turn Left
         - 3: Turn Right
         """
+        self.continuous_actions = continuous_actions
+        if (self.continuous_actions):
+            """
+            Action is a vectors of [speed [min speed, max speed], angle [-max turn, max turn], shoot? [-1, 1] if > 0 shoot else dont
+            They are all normalized into [-1, 1]
+            """
+            self.n_actions = 3
+            self.max_turn = 45
+            self.max_speed = 300
+            self.min_speed = 150
+            high = np.ones(self.n_actions, dtype=np.float32)
+            action_space = spaces.Box(high=high, low=-high, dtype=np.float32)
+        else:
+            self.n_actions = 4
+            self.step_turn = 20 # degrees to turn per step
+            self.speed = 225 # mph
+            action_space = spaces.Discrete(self.n_actions)
 
-        self.n_actions = 4
-        action_space = spaces.Discrete(self.n_actions)
         self.action_spaces = {agent: action_space for agent in self.possible_agents} # Dictionary containing an action space for each agent
         
         # ---------- Initialize values ----------
-        self.continuous_input = continuous_input
+        self.continuous_actions = continuous_actions
         self.width = sprites.DISP_WIDTH
         self.height = sprites.DISP_HEIGHT
         self.max_time = 10 + (self.n_agents * 2)
@@ -155,11 +170,9 @@ class parallel_env(ParallelEnv, EzPickle):
         self.ties = 0
         self.bullets = []
         self.explosions = []
-        self.speed = 225 # mph
         self.bullet_speed = 450 # mph
         self.total_time = 0 # in hours
         self.time_step = 0.1 # hours per time step
-        self.step_turn = 20 # degrees to turn per step
         self.show = show # show the pygame animation
         self.hit_base_reward = hit_base_reward
         self.hit_plane_reward = hit_plane_reward
@@ -286,8 +299,6 @@ class parallel_env(ParallelEnv, EzPickle):
             return observations, rewards, self.dones, infos 
 
         # If passing no actions or no agents alive, then we have a tie because all agents are dead
-        if self.continuous_input:
-            actions = self.make_discrete(actions)
         if len(actions) == 0 or len(self.agents) == 0:
             self.tie()
             observations = {agent: self.observe(agent) for agent in self.possible_agents} # Get observation for each agent
@@ -376,26 +387,33 @@ class parallel_env(ParallelEnv, EzPickle):
         oteam = 'blue' if team == 'red' else 'red'
         agent_pos = agent.get_pos()
         agent_dir = agent.get_direction()
+        if not self.continuous_actions:
+            # --------------- FORWARD ---------------
+            if action == 0: 
+                agent.forward(self.speed, self.time_step) # Move the plane forward
 
-        # --------------- FORWARD ---------------
-        if action == 0: 
-            agent.forward(self.speed, self.time_step) # Move the plane forward
+            # --------------- SHOOT ---------------
+            elif action == 1:
+                self.bullets.append(Bullet(agent_pos[0], agent_pos[1], agent_dir, self.bullet_speed, team, self.team[oteam], agent_id)) # Shoot a bullet
+                agent.forward(self.speed, self.time_step) # Move the plane forward
+            
+            # --------------- TURN LEFT ---------------
+            elif action == 2:
+                agent.rotate(self.step_turn) # Rotate the plane
+                agent.forward(self.speed, self.time_step) # Move the plane forward
 
-        # --------------- SHOOT ---------------
-        elif action == 1:
-            self.bullets.append(Bullet(agent_pos[0], agent_pos[1], agent_dir, self.bullet_speed, team, self.team[oteam], agent_id)) # Shoot a bullet
-            agent.forward(self.speed, self.time_step) # Move the plane forward
-        
-        # --------------- TURN LEFT ---------------
-        elif action == 2:
-            agent.rotate(self.step_turn) # Rotate the plane
-            agent.forward(self.speed, self.time_step) # Move the plane forward
-
-        # ---------------- TURN RIGHT ----------------
-        elif action == 3:
-            agent.rotate(-self.step_turn) # Rotate the plane
-            agent.forward(self.speed, self.time_step) # Move the plane forward
-
+            # ---------------- TURN RIGHT ----------------
+            elif action == 3:
+                agent.rotate(-self.step_turn) # Rotate the plane
+                agent.forward(self.speed, self.time_step) # Move the plane forward
+        else:
+            speed = ((action[0] + 1)/2) * (self.max_speed - self.min_speed) + self.min_speed # Calculate speed from input
+            agent.forward(speed, self.time_step) # Move forward
+            turn_angle = action[1] * self.max_turn # Calculate angle to turn from input
+            agent.rotate(turn_angle) # Rotate
+            if action[2] > 0: # Check if shoot
+                self.bullets.append(Bullet(agent_pos[0], agent_pos[1], agent_dir, self.bullet_speed, team, self.team[oteam], agent_id)) # Shoot a bullet
+            
     def winner_screen(self):
         """
         Display the winner of the game when the game is over
