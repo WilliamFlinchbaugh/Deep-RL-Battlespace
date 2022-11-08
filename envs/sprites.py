@@ -315,7 +315,7 @@ class Bullet(pygame.sprite.Sprite):
         self.pos = (x, y)
         self.speed = speed
         self.dist_travelled = 0
-        self.max_dist = 600
+        self.max_dist = 400
 
     # Checks the status of the bullet (hit or miss or neither)
     def update(self, screen_width, screen_height, time):
