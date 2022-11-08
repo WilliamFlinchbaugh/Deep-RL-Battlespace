@@ -10,8 +10,8 @@ def merge_dicts(dict1, dict2):
     dict2.update(dict1)
     return dict2
 
-GAMMA = 0.97
-LEARNING_RATE = 0.005
+GAMMA = 0.99
+LEARNING_RATE = 0.01
 BUFFER_SIZE = 1000000
 BATCH_SIZE = 100
 PRINT_INTERVAL = 100
@@ -29,7 +29,7 @@ env_config = {
     'die_punishment': 0, # Punishment value for a plane dying
     'lose_punishment': -30, # Punishment for losing the game (The goal is to possibly defend the base)
     'fps': 20, # Framerate that the visuals run at
-    'continuous_input': True
+    'continuous_actions': True
 }
 
 def main():
@@ -83,7 +83,7 @@ def main():
         for agent in blue_agent_list:
             blue_obs[agent] = observations[agent]
 
-        if i % SHOW_INTERVAL == 0 and i > 0:
+        if i % SHOW_INTERVAL == 0:
             env.show = True
             env.start_recording(f'{FOLDER}/training_vids/{i}.mp4')
 
