@@ -1,0 +1,19 @@
+MADDPG
+
+ENV CONFIG:
+{'continuous_actions': True,
+ 'die_punishment': 0,
+ 'fps': 20,
+ 'hit_base_reward': 100,
+ 'hit_plane_reward': 30,
+ 'lose_punishment': -30,
+ 'miss_punishment': -1,
+ 'n_agents': 2,
+ 'show': False}
+
+HYPERPARAMETERS:
+{'batch_size': 100,
+ 'buffer_size': 1000000,
+ 'gamma': 0.97,
+ 'learning_rate': 0.005,
+ 'n_games': 200000}
