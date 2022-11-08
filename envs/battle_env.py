@@ -148,9 +148,9 @@ class parallel_env(ParallelEnv, EzPickle):
             They are all normalized into [-1, 1]
             """
             self.n_actions = 3
-            self.max_turn = 45
-            self.max_speed = 300
-            self.min_speed = 150
+            self.max_turn = 35
+            self.max_speed = 275
+            self.min_speed = 200
             high = np.ones(self.n_actions, dtype=np.float32)
             action_space = spaces.Box(high=high, low=-high, dtype=np.float32)
         else:
