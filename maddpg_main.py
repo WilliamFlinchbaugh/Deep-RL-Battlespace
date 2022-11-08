@@ -18,13 +18,13 @@ PRINT_INTERVAL = 20
 SAVE_INTERVAL = 100
 LEARN_INTERVAL = 10
 SHOW_INTERVAL = 1000
-N_GAMES = 200000
+N_GAMES = 500000
 
 env_config = {
-    'n_agents': 2, # Number of planes on each team
+    'n_agents': 3, # Number of planes on each team
     'show': False, # Show visuals
-    'hit_base_reward': 45, # Reward value for hitting enemy base
-    'hit_plane_reward': 15, # Reward value for hitting enemy plane
+    'hit_base_reward': 50, # Reward value for hitting enemy base
+    'hit_plane_reward': 25, # Reward value for hitting enemy plane
     'miss_punishment': -1, # Punishment value for missing a shot
     'die_punishment': 0, # Punishment value for a plane dying
     'lose_punishment': -30, # Punishment for losing the game (The goal is to possibly defend the base)
