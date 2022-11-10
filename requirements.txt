@@ -1,9 +1,9 @@
-gym==0.21.0
+gym==0.25.0
 matplotlib==3.5.2
 numpy==1.23.1
-opencv_python==4.6.0.66
+opencv_python==3.4.18.65
 PettingZoo==1.19.0
-pygame==2.1.0
+pygame==2.1.2
 scipy==1.8.1
 torch==1.12.0
-vidmaker==2.2.1
+vidmaker==2.3.0
