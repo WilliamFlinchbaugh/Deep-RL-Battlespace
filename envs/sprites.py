@@ -290,7 +290,7 @@ class Bullet(pygame.sprite.Sprite):
     """
     Pygame sprite of a bullet
     """
-    def __init__(self, x, y, angle, speed, fcolor, oteam, agent_id):
+    def __init__(self, x, y, angle, speed, fcolor, oteam, agent_id, shot_dist):
         """Initiates values
 
         Args:
@@ -315,7 +315,7 @@ class Bullet(pygame.sprite.Sprite):
         self.pos = (x, y)
         self.speed = speed
         self.dist_travelled = 0
-        self.max_dist = 400
+        self.max_dist = shot_dist
 
     # Checks the status of the bullet (hit or miss or neither)
     def update(self, screen_width, screen_height, time):
