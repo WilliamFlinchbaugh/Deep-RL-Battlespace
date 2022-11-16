@@ -171,6 +171,7 @@ class parallel_env(ParallelEnv, EzPickle):
         self.bullets = []
         self.explosions = []
         self.bullet_speed = 450 # mph
+        self.shot_dist = 500 # Distance a bullet can travel before it disappears
         self.total_time = 0 # in hours
         self.time_step = 0.1 # hours per time step
         self.show = show # show the pygame animation
@@ -394,7 +395,7 @@ class parallel_env(ParallelEnv, EzPickle):
 
             # --------------- SHOOT ---------------
             elif action == 1:
-                self.bullets.append(Bullet(agent_pos[0], agent_pos[1], agent_dir, self.bullet_speed, team, self.team[oteam], agent_id)) # Shoot a bullet
+                self.bullets.append(Bullet(agent_pos[0], agent_pos[1], agent_dir, self.bullet_speed, team, self.team[oteam], agent_id, self.shot_dist)) # Shoot a bullet
                 agent.forward(self.speed, self.time_step) # Move the plane forward
             
             # --------------- TURN LEFT ---------------
@@ -412,7 +413,7 @@ class parallel_env(ParallelEnv, EzPickle):
             turn_angle = action[1] * self.max_turn # Calculate angle to turn from input
             agent.rotate(turn_angle) # Rotate
             if action[2] > 0: # Check if shoot
-                self.bullets.append(Bullet(agent_pos[0], agent_pos[1], agent_dir, self.bullet_speed, team, self.team[oteam], agent_id)) # Shoot a bullet
+                self.bullets.append(Bullet(agent_pos[0], agent_pos[1], agent_dir, self.bullet_speed, team, self.team[oteam], agent_id, self.shot_dist)) # Shoot a bullet
             
     def winner_screen(self):
         """
