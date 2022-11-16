@@ -1,4 +1,9 @@
 import envs.battle_env as battle_env
+import instinct.team as instinct
+
+def merge_dicts(dict1, dict2):
+    dict2.update(dict1)
+    return dict2
 
 def main():
     cf = {
@@ -13,16 +18,37 @@ def main():
     }
 
     env = battle_env.parallel_env(**cf)
-    print(env.observation_space("plane0").shape[0])
+    red_agent_list = env.possible_red
+    blue_agent_list = env.possible_blue
+    red_team = instinct.Team(red_agent_list, blue_agent_list, env)
+    blue_team = instinct.Team(blue_agent_list, red_agent_list, env)
 
     # env.start_recording('test.mp4')
     for _ in range(5):
         observations = env.reset()
+
+        red_obs = {}
+        blue_obs = {}
+        red_obs_ = {}
+        blue_obs_ = {}
+
+        for agent in red_agent_list:
+            red_obs[agent] = observations[agent]
+        for agent in blue_agent_list:
+            blue_obs[agent] = observations[agent]
+
+        observations = env.reset()
         actions = {}
+
         while not env.env_done:
-            for agent in env.agents:
-                actions[agent] = env.action_space(agent).sample()
-            observations, rewards, dones, infos = env.step(actions)
+            actions = merge_dicts(red_team.choose_actions(red_obs), blue_team.choose_actions(blue_obs))
+            observations_, _, _, _ = env.step(actions)
+            for agent in red_agent_list:
+                red_obs_[agent] = observations_[agent]
+            for agent in blue_agent_list:
+                blue_obs_[agent] = observations_[agent]
+            red_obs = red_obs_
+            blue_obs = blue_obs_
 
     # env.export_video()
 
