@@ -74,7 +74,8 @@ def main():
     start = datetime.datetime.now()
 
     for i in range(N_GAMES+1):
-        sys.stdout.write(f"\rEpisode {i}")
+        sys.stdout.write(f"\r{' Episode {game}, %{percent:.2f} Complete '.format(game = i, percent = i / N_GAMES * 100):=^43}")
+        # Episode {i}, %{i / N_GAMES * 100:.2f} Complete
         observations = env.reset()
 
         red_score = 0
