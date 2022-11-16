@@ -6,23 +6,24 @@ from pprint import pprint
 import os
 import datetime
 from utils.utils import plot_data
+import sys
 
 def merge_dicts(dict1, dict2):
     dict2.update(dict1)
     return dict2
 
 GAMMA = 0.95
-LEARNING_RATE = 0.02
-BUFFER_SIZE = 1000000
-BATCH_SIZE = 100
-PRINT_INTERVAL = 20
+LEARNING_RATE = 0.01
+BUFFER_SIZE = 100_000
+BATCH_SIZE = 1_024
+PRINT_INTERVAL = 100
 SAVE_INTERVAL = 100
 LEARN_INTERVAL = 10
-SHOW_INTERVAL = 1
-N_GAMES = 500000
+SHOW_INTERVAL = 1_000
+N_GAMES = 500_000
 
 env_config = {
-    'n_agents': 3, # Number of planes on each team
+    'n_agents': 2, # Number of planes on each team
     'show': False, # Show visuals
     'hit_base_reward': 50, # Reward value for hitting enemy base
     'hit_plane_reward': 25, # Reward value for hitting enemy plane
@@ -73,6 +74,7 @@ def main():
     start = datetime.datetime.now()
 
     for i in range(N_GAMES+1):
+        sys.stdout.write(f"\rEpisode {i}")
         observations = env.reset()
 
         red_score = 0
@@ -85,7 +87,7 @@ def main():
         for agent in blue_agent_list:
             blue_obs[agent] = observations[agent]
 
-        if i % SHOW_INTERVAL == 0 and i > 0:
+        if i % SHOW_INTERVAL == 0:
             env.show = True
             env.start_recording(f'{FOLDER}/training_vids/{i}.mp4')
 
@@ -145,7 +147,7 @@ def main():
             avg_red = np.mean(red_scores[-PRINT_INTERVAL:])
             avg_blue = np.mean(blue_scores[-PRINT_INTERVAL:])
             statement = (
-                f"{'-'*43}\n"
+                f"\n{'-'*43}\n"
                 f"| {('Current Time: ' + str(formatted_time)):<40}|\n"
                 f"| {('Elapsed Time: ' + str(formatted_elapsed)):<40}|\n"
                 f"| {('Games: ' + str(i)):<40}|\n"
