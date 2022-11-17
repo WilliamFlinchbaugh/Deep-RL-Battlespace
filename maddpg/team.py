@@ -5,7 +5,7 @@ import torch as T
 import torch.nn.functional as F
 
 class Team:
-    def __init__(self, agent_list, obs_size, n_actions, critic_dims, mem_size=100000, batch_size=64, gamma=0.99, lr=.001, chkpt_dir='tmp/maddpg'):
+    def __init__(self, agent_list, obs_size, n_actions, critic_dims, mem_size, batch_size, gamma, lr, chkpt_dir):
         self.batch_size = batch_size
         self.agent_list = agent_list
         self.agents = {}
