@@ -152,7 +152,7 @@ class parallel_env(ParallelEnv, EzPickle):
             self.max_speed = 275
             self.min_speed = 200
             high = np.ones(self.n_actions, dtype=np.float32)
-            action_space = spaces.Box(high=high, low=-high, dtype=np.float32)
+            action_space = spaces.Box(low=-1, high=1, shape=(3,), dtype=np.float32)
         else:
             self.n_actions = 4
             self.step_turn = 20 # degrees to turn per step
@@ -290,6 +290,11 @@ class parallel_env(ParallelEnv, EzPickle):
             dones (dict): Dictionary indicating which agents are done and should be skipped over
             infos (dict): Used for extra info (not utilized)
         """
+
+        # clip the actions to the action space
+        for key, value in actions.items():
+            actions[key] = np.clip(value, self.action_space(key).low, self.action_space(key).high)
+
         # Initialize all rewards to 0
         rewards = {agent: 0 for agent in self.possible_agents}
 
