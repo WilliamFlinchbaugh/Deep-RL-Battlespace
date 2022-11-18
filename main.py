@@ -2,7 +2,6 @@ import envs.battle_env as battle_env
 import maddpg.team as maddpg
 import instinct.team as instinct
 import numpy as np
-from pprint import pprint
 import os
 import datetime
 from utils.utils import plot_data
@@ -11,19 +10,19 @@ import json
 import shutil
 
 hyperparams = {
-    'gamma': 0.95,
-    'lr': 0.0001,
+    'gamma': 0.99,
+    'lr': 0.001,
     'buffer_size': 100_000,
     'batch_size': 1024,
     'print_interval': 100,
     'save_interval': 100,
-    'learn_interval': 20,
+    'learn_interval': 100,
     'render_interval': 1000,
     'max_episodes': 500_000,
 }
 
 env_config = {
-    'n_agents': 1, # Number of planes on each team
+    'n_agents': 2, # Number of planes on each team
     'show': False, # Show visuals
     'hit_base_reward': 100, # Reward value for hitting enemy base
     'hit_plane_reward': 100, # Reward value for hitting enemy plane
