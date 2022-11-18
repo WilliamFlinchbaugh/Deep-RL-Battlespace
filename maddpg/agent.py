@@ -3,20 +3,19 @@ import torch as T
 import numpy as np
 
 class NetworkedAgent:
-    def __init__(self, agent_list, n_actions, obs_len, name, n_agents, tau=0.01, gamma=0.99, batch_size=64, lr=0.001, chkpt_dir='tmp/maddpg'):
+    def __init__(self, agent_list, n_actions, obs_len, name, n_agents, fc1_dims, fc2_dims, gamma, lr, chkpt_dir):
         self.agent_list = agent_list
         self.n_actions = n_actions
         self.obs_len = obs_len
         self.name = name
-        self.tau = tau
-        self.batch_size = batch_size
+        self.tau = 0.01
         self.gamma = gamma
         self.timestep = 0
 
-        self.actor = ActorNetwork(obs_len, n_actions, lr=lr, chkpt_dir=chkpt_dir, name=f'actor_{name}')
-        self.target_actor = ActorNetwork(obs_len, n_actions, lr=lr, chkpt_dir=chkpt_dir, name=f'target_actor_{name}')
-        self.critic = CriticNetwork(obs_len, n_actions, n_agents, lr=lr, chkpt_dir=chkpt_dir, name=f'critic_{name}')
-        self.target_critic = CriticNetwork(obs_len, n_actions, n_agents, lr=lr, chkpt_dir=chkpt_dir, name=f'target_critic_{name}')
+        self.actor = ActorNetwork(obs_len, n_actions, fc1_dims, fc2_dims, lr, chkpt_dir, f'actor_{name}')
+        self.target_actor = ActorNetwork(obs_len, n_actions, fc1_dims, fc2_dims, lr, chkpt_dir, f'target_actor_{name}')
+        self.critic = CriticNetwork(obs_len, n_actions, n_agents, fc1_dims, fc2_dims, lr, chkpt_dir, f'critic_{name}')
+        self.target_critic = CriticNetwork(obs_len, n_actions, n_agents, fc1_dims, fc2_dims, lr, chkpt_dir, f'target_critic_{name}')
 
         self.update_network_parameters(tau=1)
     
@@ -25,7 +24,7 @@ class NetworkedAgent:
         actions = self.actor.forward(state)
         noise = T.rand(self.n_actions).to(self.actor.device)
         action = actions + noise
-        return action.detach().cpu().numpy()[0]
+        return np.clip(action.detach().cpu().numpy()[0] * 2 - 1, -1, 1)
 
     def update_network_parameters(self, tau=None):
         if tau is None:
