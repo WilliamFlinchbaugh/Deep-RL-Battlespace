@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 class InstinctAgent:
     def __init__(self, agent_list, enemy_list, env):
@@ -18,7 +19,7 @@ class InstinctAgent:
             index += 3
         
         enemy_scores = []
-        enemy_scores.append(enemy_info[f"base_dist"] * abs(enemy_info[f"base_angle"]) * 8/9)
+        enemy_scores.append(enemy_info[f"base_dist"] * abs(enemy_info[f"base_angle"]))
         for enemy in self.enemy_list:
             if enemy_info[f"{enemy}_alive"] == 1:
                 enemy_scores.append(enemy_info[f"{enemy}_dist"] * abs(enemy_info[f"{enemy}_angle"]))
@@ -31,12 +32,15 @@ class InstinctAgent:
             target = self.enemy_list[enemy_scores.index(min(enemy_scores)) - 1]
 
         actions = [0, 0, 0]
-        if enemy_info[f"{target}_dist"] < self.env.shot_dist and abs(enemy_info[f"{target}_angle"]) < 30:
-            actions[2] = 1 # shoot!
+        if enemy_info[f"{target}_dist"] < self.env.shot_dist / 2 and abs(enemy_info[f"{target}_angle"]) < 20:
+            actions[2] = 1 if np.random.rand() > 0.5 else -1 # shoot if it passes the 50/50
         actions[0] = enemy_info[f"{target}_dist"] / math.sqrt(math.pow(self.env.width, 2) + math.pow(self.env.height, 2)) * 2 - 1
         if enemy_info[f"{target}_angle"] > 0:
             actions[1] = max(-enemy_info[f"{target}_angle"] / self.env.max_turn, -1)
         else:
             actions[1] = min(-enemy_info[f"{target}_angle"] / self.env.max_turn, 1)
+        
+        noise = np.random.uniform(-0.2, 0.2, size=3)
+        actions = np.clip(actions + noise, -1, 1)
 
         return actions
