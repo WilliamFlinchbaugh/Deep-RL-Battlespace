@@ -11,9 +11,11 @@ import shutil
 
 hyperparams = {
     'gamma': 0.99,
-    'lr': 0.001,
+    'lr': 0.0001,
     'buffer_size': 100_000,
-    'batch_size': 1024,
+    'batch_size': 128,
+    'fc1_dims': 32,
+    'fc2_dims': 32,
     'print_interval': 100,
     'save_interval': 100,
     'learn_interval': 100,
@@ -24,9 +26,9 @@ hyperparams = {
 env_config = {
     'n_agents': 2, # Number of planes on each team
     'show': False, # Show visuals
-    'hit_base_reward': 100, # Reward value for hitting enemy base
-    'hit_plane_reward': 100, # Reward value for hitting enemy plane
-    'miss_punishment': 0, # Punishment value for missing a shot
+    'hit_base_reward': 10, # Reward value for hitting enemy base
+    'hit_plane_reward': 10, # Reward value for hitting enemy plane
+    'miss_punishment': -1, # Punishment value for missing a shot
     'die_punishment': 0, # Punishment value for a plane dying
     'lose_punishment': 0, # Punishment for losing the game (The goal is to possibly defend the base)
     'fps': 20, # Framerate that the visuals run at
@@ -98,7 +100,7 @@ if __name__ == '__main__':
     obs_len = env.observation_space(red_agent_list[0]).shape[0]
     critic_dims = obs_len * env.n_agents
 
-    red_team = maddpg.Team(red_agent_list, obs_len, env.n_actions, critic_dims, hyperparams['buffer_size'], hyperparams['batch_size'], hyperparams['gamma'], hyperparams['lr'], FOLDER)
+    red_team = maddpg.Team(red_agent_list, obs_len, env.n_actions, critic_dims, hyperparams['fc1_dims'], hyperparams['fc2_dims'], hyperparams['buffer_size'], hyperparams['batch_size'], hyperparams['gamma'], hyperparams['lr'], FOLDER)
     blue_team = instinct.Team(blue_agent_list, red_agent_list, env)
 
     steps = 0
@@ -108,8 +110,11 @@ if __name__ == '__main__':
     print(f'\n{" Starting Training ":=^43}')
     start = datetime.datetime.now()
 
-    for i in range(hyperparams['max_episodes']+1):
-        sys.stdout.write(f"\r{' Episode {game}, %{percent:.2f} Complete '.format(game = i, percent = i / hyperparams['max_episodes'] * 100):=^43}")
+    for i in range(1, hyperparams['max_episodes']+1):
+        now = datetime.datetime.now()
+        elapsed = now - start
+        estimate = (elapsed.total_seconds() / i * hyperparams['max_episodes']) / 3600
+        sys.stdout.write(f"\r{' Episode {game} | %{percent:.1f} | {estimate:.1f} Hours Left '.format(game=i, percent=i/hyperparams['max_episodes']*100, estimate=estimate):=^43}")
         observations = env.reset()
 
         red_score = 0
@@ -171,20 +176,23 @@ if __name__ == '__main__':
             blue_scores.append(blue_score)
             steps += 1
 
-        if i % hyperparams['print_interval'] == 0 and i > 0:
+        if i % hyperparams['print_interval'] == 0:
             now = datetime.datetime.now()
             elapsed = now - start
             s = elapsed.total_seconds()
-            hours, remainder = divmod(s, 3600)
-            minutes, seconds = divmod(remainder, 60)
-            formatted_elapsed = f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
+            hr, rem = divmod(s, 3600)
+            min, sec = divmod(rem, 60)
+
+            formatted_elapsed = f'{int(hr):02}:{int(min):02}:{int(sec):02}'
             formatted_time = now.strftime("%I:%M:%S %p")
+
             avg_red = np.mean(red_scores[-hyperparams['print_interval']:])
             avg_blue = np.mean(blue_scores[-hyperparams['print_interval']:])
+
             statement = (
                 f"\n{'-'*43}\n"
                 f"| {('Current Time: ' + formatted_time):<40}|\n"
-                f"| {('Elapsed Time: ' + str(formatted_elapsed)):<40}|\n"
+                f"| {('Elapsed Time: ' + formatted_elapsed):<40}|\n"
                 f"| {('Games: ' + str(i)):<40}|\n"
                 f"| {('Timesteps: ' + str(steps)):<40}|\n"
                 f"| {('Red Avg Score: ' + str(avg_red)):<40}|\n"
