@@ -5,7 +5,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 class CriticNetwork(nn.Module):
-    def __init__(self, obs_len, n_actions, n_agents, fc1_dims=128, fc2_dims=128, lr=0.001, chkpt_dir='tmp/maddpg', name='critic'):
+    def __init__(self, obs_len, n_actions, n_agents, fc1_dims=64, fc2_dims=64, lr=0.001, chkpt_dir='tmp/maddpg', name='critic'):
         super(CriticNetwork, self).__init__()
         self.fc1 = nn.Linear(obs_len*n_agents+n_actions*n_agents, fc1_dims)
         self.fc2 = nn.Linear(fc1_dims, fc2_dims)
@@ -31,7 +31,7 @@ class CriticNetwork(nn.Module):
 
 
 class ActorNetwork(nn.Module):
-    def __init__(self, obs_len, n_actions, fc1_dims=128, fc2_dims=128, lr=0.001, chkpt_dir='tmp/maddpg', name='actor'):
+    def __init__(self, obs_len, n_actions, fc1_dims=64, fc2_dims=64, lr=0.001, chkpt_dir='tmp/maddpg', name='actor'):
         super(ActorNetwork, self).__init__()
         self.fc1 = nn.Linear(obs_len, fc1_dims)
         self.fc2 = nn.Linear(fc1_dims, fc2_dims)
@@ -45,7 +45,7 @@ class ActorNetwork(nn.Module):
     def forward(self, obs):
         x = F.relu(self.fc1(obs))
         x = F.relu(self.fc2(x))
-        pi = T.softmax(self.pi(x), dim=1)
+        pi = self.pi(x)
         return pi
 
     def save_checkpoint(self):
