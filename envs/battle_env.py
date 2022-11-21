@@ -155,8 +155,8 @@ class parallel_env(ParallelEnv, EzPickle):
             action_space = spaces.Box(low=-1, high=1, shape=(3,), dtype=np.float32)
         else:
             self.n_actions = 4
-            self.step_turn = 20 # degrees to turn per step
-            self.speed = 225 # mph
+            self.step_turn = 15 # degrees to turn per step
+            self.speed = 215 # mph
             action_space = spaces.Discrete(self.n_actions)
 
         self.action_spaces = {agent: action_space for agent in self.possible_agents} # Dictionary containing an action space for each agent
@@ -292,8 +292,9 @@ class parallel_env(ParallelEnv, EzPickle):
         """
 
         # clip the actions to the action space
-        for key, value in actions.items():
-            actions[key] = np.clip(value, self.action_space(key).low, self.action_space(key).high)
+        if self.continuous_actions:
+            for key, value in actions.items():
+                actions[key] = np.clip(value, self.action_space(key).low, self.action_space(key).high)
 
         # Initialize all rewards to 0
         rewards = {agent: 0 for agent in self.possible_agents}
@@ -323,6 +324,8 @@ class parallel_env(ParallelEnv, EzPickle):
 
         for agent_id in self.agents: # Carry out actions for each agent that is alive
             action = actions[agent_id] # Grab action for this agent 
+            if type(action) == np.ndarray and not self.continuous_actions: # If the action is a numpy array and the action space is discrete
+                action = np.argmax(action)
             self.process_action(action, agent_id) # Perform the action
 
         # Move every bullet and check for hits
