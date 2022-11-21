@@ -45,7 +45,7 @@ class ActorNetwork(nn.Module):
     def forward(self, obs):
         x = F.relu(self.fc1(obs))
         x = F.relu(self.fc2(x))
-        pi = self.pi(x)
+        pi = T.softmax(self.pi(x), dim=1)
         return pi
 
     def save_checkpoint(self):
