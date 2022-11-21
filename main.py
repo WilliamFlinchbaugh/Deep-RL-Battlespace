@@ -10,29 +10,29 @@ import json
 import shutil
 
 hyperparams = {
-    'gamma': 0.99,
-    'lr': 0.0001,
-    'buffer_size': 100_000,
-    'batch_size': 128,
+    'gamma': 0.95,
+    'lr': 0.001,
+    'buffer_size': 400_000,
+    'batch_size': 64,
     'fc1_dims': 32,
     'fc2_dims': 32,
     'print_interval': 100,
     'save_interval': 100,
     'learn_interval': 100,
-    'render_interval': 1000,
+    'render_interval': 500,
     'max_episodes': 500_000,
 }
 
 env_config = {
     'n_agents': 2, # Number of planes on each team
     'show': False, # Show visuals
-    'hit_base_reward': 10, # Reward value for hitting enemy base
-    'hit_plane_reward': 10, # Reward value for hitting enemy plane
-    'miss_punishment': -1, # Punishment value for missing a shot
-    'die_punishment': 0, # Punishment value for a plane dying
-    'lose_punishment': 0, # Punishment for losing the game (The goal is to possibly defend the base)
+    'hit_base_reward': 100, # Reward value for hitting enemy base
+    'hit_plane_reward': 100, # Reward value for hitting enemy plane
+    'miss_punishment': -2, # Punishment value for missing a shot
+    'die_punishment': -10, # Punishment value for a plane dying
+    'lose_punishment': -10, # Punishment for losing the game (The goal is to possibly defend the base)
     'fps': 20, # Framerate that the visuals run at
-    'continuous_actions': True
+    'continuous_actions': False
 }
 
 def merge_dicts(dict1, dict2):
@@ -130,6 +130,7 @@ if __name__ == '__main__':
         if i % hyperparams['render_interval'] == 0:
             env.show = True
             env.start_recording(f'{FOLDER}/training_vids/{i}.mp4')
+            plot_data(score_dict, FOLDER + '/scores.svg')
 
         elif env.show == True:
             env.export_video()
