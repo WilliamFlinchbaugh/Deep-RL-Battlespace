@@ -24,7 +24,7 @@ class NetworkedAgent:
         actions = self.actor.forward(state)
         noise = T.rand(self.n_actions).to(self.actor.device)
         action = actions + noise
-        return np.clip(action.detach().cpu().numpy()[0] * 2 - 1, -1, 1)
+        return action.detach().cpu().numpy()[0]
 
     def update_network_parameters(self, tau=None):
         if tau is None:
