@@ -14,8 +14,11 @@ hyperparams = {
     'lr': 0.001,
     'buffer_size': 400_000,
     'batch_size': 64,
-    'fc1_dims': 32,
-    'fc2_dims': 32,
+    'fc1_dims': 64,
+    'fc2_dims': 64,
+    'init_noise': 0.4,
+    'final_noise': 0.01,
+    'n_explores': 30000,
     'print_interval': 100,
     'save_interval': 100,
     'learn_interval': 100,
@@ -104,18 +107,27 @@ if __name__ == '__main__':
     blue_team = instinct.Team(blue_agent_list, red_agent_list, env)
 
     steps = 0
-    red_scores = []
-    blue_scores = []
+    score_dict = {
+        "red": [],
+        "blue": []
+    }
 
     print(f'\n{" Starting Training ":=^43}')
     start = datetime.datetime.now()
 
+    # Training loop
     for i in range(1, hyperparams['max_episodes']+1):
         now = datetime.datetime.now()
         elapsed = now - start
         estimate = (elapsed.total_seconds() / i * hyperparams['max_episodes']) / 3600
         sys.stdout.write(f"\r{' Episode {game} | %{percent:.1f} | {estimate:.1f} Hours Left '.format(game=i, percent=i/hyperparams['max_episodes']*100, estimate=estimate):=^43}")
         observations = env.reset()
+
+        explore_remaining = max(0, hyperparams['n_explores'] - i) / hyperparams['n_explores']
+        explore_scale = hyperparams['init_noise'] + (hyperparams['init_noise'] - hyperparams['final_noise']) * explore_remaining
+        explore_scale = round(explore_scale, 2)
+        red_team.scale_noise(explore_scale)
+        red_team.reset_noise()
 
         red_score = 0
         blue_score = 0
@@ -127,10 +139,10 @@ if __name__ == '__main__':
         for agent in blue_agent_list:
             blue_obs[agent] = observations[agent]
 
-        if i % hyperparams['render_interval'] == 0:
+        if i % hyperparams['render_interval'] == 0 and i > 0:
             env.show = True
             env.start_recording(f'{FOLDER}/training_vids/{i}.mp4')
-            plot_data(score_dict, FOLDER + '/scores.svg')
+            # plot_data(score_dict, FOLDER + '/scores.svg')
 
         elif env.show == True:
             env.export_video()
@@ -173,8 +185,8 @@ if __name__ == '__main__':
             red_obs = red_obs_
             blue_obs = blue_obs_
 
-            red_scores.append(red_score)
-            blue_scores.append(blue_score)
+            score_dict['red'].append(red_score)
+            score_dict['blue'].append(blue_score)
             steps += 1
 
         if i % hyperparams['print_interval'] == 0:
@@ -187,8 +199,8 @@ if __name__ == '__main__':
             formatted_elapsed = f'{int(hr):02}:{int(min):02}:{int(sec):02}'
             formatted_time = now.strftime("%I:%M:%S %p")
 
-            avg_red = np.mean(red_scores[-hyperparams['print_interval']:])
-            avg_blue = np.mean(blue_scores[-hyperparams['print_interval']:])
+            avg_red = np.mean(score_dict['red'][-hyperparams['print_interval']:])
+            avg_blue = np.mean(score_dict['blue'][-hyperparams['print_interval']:])
 
             statement = (
                 f"\n{'-'*43}\n"
@@ -196,15 +208,11 @@ if __name__ == '__main__':
                 f"| {('Elapsed Time: ' + formatted_elapsed):<40}|\n"
                 f"| {('Games: ' + str(i)):<40}|\n"
                 f"| {('Timesteps: ' + str(steps)):<40}|\n"
+                f"| {('Exploration Scale: ' + str(explore_scale)):<40}|\n"
                 f"| {('Red Avg Score: ' + str(avg_red)):<40}|\n"
                 f"| {('Blue Avg Score: ' + str(avg_blue)):<40}|\n"
                 f"{'-'*43}\n"
             )
             print(statement)
-            
-    score_dict = {
-        "red": red_scores,
-        "blue": blue_scores
-    }
 
     plot_data(score_dict, FOLDER + '/scores.svg')
