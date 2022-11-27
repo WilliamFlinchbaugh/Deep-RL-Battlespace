@@ -1,6 +1,7 @@
 from maddpg.networks import ActorNetwork, CriticNetwork
 import torch as T
 import numpy as np
+from utils.noise import OUNoise
 
 class NetworkedAgent:
     def __init__(self, agent_list, n_actions, obs_len, name, n_agents, fc1_dims, fc2_dims, gamma, lr, chkpt_dir):
@@ -11,6 +12,7 @@ class NetworkedAgent:
         self.tau = 0.01
         self.gamma = gamma
         self.timestep = 0
+        self.noise = OUNoise(self.n_actions)
 
         self.actor = ActorNetwork(obs_len, n_actions, fc1_dims, fc2_dims, lr, chkpt_dir, f'actor_{name}')
         self.target_actor = ActorNetwork(obs_len, n_actions, fc1_dims, fc2_dims, lr, chkpt_dir, f'target_actor_{name}')
@@ -20,11 +22,13 @@ class NetworkedAgent:
         self.update_network_parameters(tau=1)
     
     def choose_action(self, observation):
+        self.actor.eval()
         state = T.tensor(np.array([observation]), dtype=T.float).to(self.actor.device)
-        actions = self.actor.forward(state)
-        noise = T.rand(self.n_actions).to(self.actor.device)
-        action = actions + noise
-        return action.detach().cpu().numpy()[0]
+        actions = self.actor(state)
+        actions += T.tensor(self.noise.noise(), dtype=T.float).to(self.actor.device)
+        actions = actions.clamp(-1, 1)
+        self.actor.train()
+        return actions.detach().cpu().numpy()
 
     def update_network_parameters(self, tau=None):
         if tau is None:
@@ -45,9 +49,15 @@ class NetworkedAgent:
 
         for name in critic_state_dict:
             critic_state_dict[name] = tau*critic_state_dict[name].clone() + (1-tau)*target_critic_state_dict[name].clone()
-
+        
         self.target_actor.load_state_dict(actor_state_dict)
         self.target_critic.load_state_dict(critic_state_dict)
+        
+    def reset_noise(self):
+        self.noise.reset()
+        
+    def scale_noise(self, scale):
+        self.noise.scale = scale
 
     def save_models(self):
         self.actor.save_checkpoint()
