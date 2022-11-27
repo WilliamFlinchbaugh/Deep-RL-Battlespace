@@ -78,6 +78,14 @@ class Team:
         for idx, agent_id in enumerate(self.agent_list):
             self.agents[agent_id].actor.optimizer.step()
             self.agents[agent_id].update_network_parameters()
+            
+    def scale_noise(self, scale):
+        for agent in self.agents.values():
+            agent.scale_noise(scale)
+            
+    def reset_noise(self):
+        for agent in self.agents.values():
+            agent.reset_noise()
 
     def save_models(self):
         for agent in self.agents.values():
