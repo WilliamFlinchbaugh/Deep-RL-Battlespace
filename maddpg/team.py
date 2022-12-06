@@ -7,13 +7,13 @@ import torch.nn.functional as F
 class Team:
     def __init__(self, agent_list, obs_size, n_actions, critic_dims, fc1_dims, fc2_dims, mem_size, batch_size, gamma, lr, chkpt_dir):
         self.batch_size = batch_size
-        self.agent_list = agent_list
+        self.agent_list = agent_list # List of the string names of all agents in this team
         self.agents = {}
         for idx, agent in enumerate(agent_list):
-            self.agents[agent] = NetworkedAgent(agent_list, n_actions, obs_size, agent, len(agent_list), fc1_dims, fc2_dims, gamma, lr, chkpt_dir)
+            self.agents[agent] = NetworkedAgent(agent_list, n_actions, obs_size, agent, len(agent_list), fc1_dims, fc2_dims, gamma, lr, chkpt_dir) # Create an agent for each agent in the team
         self.memory = ReplayBuffer(mem_size, batch_size, agent_list, obs_size, critic_dims, n_actions)
 
-    def choose_actions(self, observations):
+    def choose_actions(self, observations): # Call each agent's choose_action method
         actions = {}
         for agent_id, agent in self.agents.items():
             actions[agent_id] = agent.choose_action(observations[agent_id])
@@ -29,16 +29,18 @@ class Team:
 
         actor_states, states, actions, rewards, actor_new_states, states_, dones = self.memory.sample()
 
+        # Turn all into tensors
         states = T.tensor(states, dtype=T.float).to(device)
         actions = T.tensor(actions, dtype=T.float).to(device)
         rewards = T.tensor(rewards, dtype=T.float).to(device)
         states_ = T.tensor(states_, dtype=T.float).to(device)
         dones = T.tensor(dones).to(device)
 
-        all_agents_new_actions = []
-        all_agents_new_mu_actions = []
-        old_agents_actions = []
+        all_agents_new_actions = [] # Actions returned from the target actor when sent new_states
+        all_agents_new_mu_actions = [] # Actions returned from the actor when sent new_states
+        old_agents_actions = [] # Actions returned from the actor when sent states
 
+        # Gather all actions from all agents
         for idx, agent_id in enumerate(self.agent_list):
             agent = self.agents[agent_id]
             new_states = T.tensor(actor_new_states[idx], dtype=T.float).to(device)
@@ -55,9 +57,11 @@ class Team:
         mu = T.cat([acts for acts in all_agents_new_mu_actions], dim=1)
         old_actions = T.cat([acts for acts in old_agents_actions], dim=1)
 
+        # Zero all actor gradients
         for idx, agent_id in enumerate(self.agent_list):
             self.agents[agent_id].actor.optimizer.zero_grad()
 
+        # Update the critic and actor for each agent
         for idx, agent_id in enumerate(self.agent_list):
             agent = self.agents[agent_id]
 
@@ -75,10 +79,12 @@ class Team:
             actor_loss = -T.mean(actor_loss)
             actor_loss.backward(retain_graph=True)
 
+        # Step the actor optimizers and update the target networks
         for idx, agent_id in enumerate(self.agent_list):
             self.agents[agent_id].actor.optimizer.step()
             self.agents[agent_id].update_network_parameters()
-            
+    
+    # Deal with noise
     def scale_noise(self, scale):
         for agent in self.agents.values():
             agent.scale_noise(scale)
@@ -87,6 +93,7 @@ class Team:
         for agent in self.agents.values():
             agent.reset_noise()
 
+    # Save and load all agent models
     def save_models(self):
         for agent in self.agents.values():
             agent.save_models()
