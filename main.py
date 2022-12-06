@@ -12,7 +12,7 @@ import shutil
 # TODO: Save and load the number of games already played so that it can be continued
 # TODO: Save and load the scores for each team so that they can be plotted even after the program is closed
 
-hyperparams = {
+params = {
     'gamma': 0.95,
     'lr': 0.01,
     'buffer_size': 1_000_000,
@@ -26,7 +26,8 @@ hyperparams = {
     'save_interval': 1000,
     'learn_interval': 100,
     'render_interval': 500,
-    'n_games': 500_000
+    'n_games': 500_000,
+    'curr_game': 1
 }
 
 env_config = {
@@ -34,24 +35,25 @@ env_config = {
     'show': False, # Show visuals
     'hit_base_reward': 1.0, # Reward value for hitting enemy base
     'hit_plane_reward': 0.8, # Reward value for hitting enemy plane
-    'miss_punishment': -0.01, # Punishment value for missing a shot
+    'miss_punishment': -0.05, # Punishment value for missing a shot
     'die_punishment': -0.1, # Punishment value for a plane dying
     'lose_punishment': -0.5, # Punishment for losing the game (The goal is to possibly defend the base)
     'fps': 20, # Framerate that the visuals run at
     'continuous_actions': False
 }
 
+score_dict = {
+    "red": [],
+    "blue": []
+}
+
 def merge_dicts(dict1, dict2):
     dict2.update(dict1)
     return dict2
 
-def save_hyperparams(path, param_dict):
-    with open(path + '/hyperparams.json', 'w') as f:
-        f.write(json.dumps(param_dict))
-
-def save_config(path, config):
-    with open(path + '/env_config.json', 'w') as f:
-        f.write(json.dumps(config))
+def save_dict(path, dict):
+    with open(path, 'w') as f:
+        f.write(json.dumps(dict))
 
 if __name__ == '__main__':
     
@@ -62,7 +64,6 @@ if __name__ == '__main__':
     print('4. Quit')
     choice = input('Enter a number: ')
     if choice == '1': # Override a model
-        
         # Delete the model folder and create a new one
         model_name = input('Enter model name: ')
         model_path = f'models/{model_name}'
@@ -74,9 +75,9 @@ if __name__ == '__main__':
         os.makedirs(model_path)
         os.makedirs(f'{model_path}/training_vids')
         
-        # Save hyperparams and env_config
-        save_hyperparams(FOLDER, hyperparams)
-        save_config(FOLDER, env_config)
+        # Save params and env_config
+        save_dict(FOLDER + 'params.json', params)
+        save_dict(FOLDER + 'cf.json', env_config)
 
     elif choice == '2': # Continue training a model
         model_name = input('Enter model name: ')
@@ -85,17 +86,17 @@ if __name__ == '__main__':
             print('Model does not exist')
             sys.exit()
             
-        # Load hyperparams and env_config
-        with open(f'{FOLDER}/hyperparams.json', 'r') as f:
-            hyperparams = json.load(f)
-        with open(f'{FOLDER}/env_config.json', 'r') as f:
+        # Load params and env_config and scores
+        with open(f'{FOLDER}/params.json', 'r') as f:
+            params = json.load(f)
+        with open(f'{FOLDER}/cf.json', 'r') as f:
             env_config = json.load(f)
-            
-        hyperparams['n_games'] = int(input('Enter number of games to train: '))
-        
-        # Save hyperparams and env_config
-        save_hyperparams(FOLDER, hyperparams)
-        save_config(FOLDER, env_config)
+        with open(f'{FOLDER}/scores.json', 'r') as f:
+            score_dict = json.load(f)
+
+        # Save params and env_config
+        save_dict(FOLDER + 'params.json', params)
+        save_dict(FOLDER + 'cf.json', env_config)
             
     elif choice == '3': # Train a new model
         # Create a new folder for the model
@@ -106,9 +107,9 @@ if __name__ == '__main__':
                 os.makedirs(f'{FOLDER}/training_vids')
                 break
             
-        # Save hyperparams and env_config
-        save_hyperparams(FOLDER, hyperparams)
-        save_config(FOLDER, env_config)
+        # Save params and env_config
+        save_dict(FOLDER + 'params.json', params)
+        save_dict(FOLDER + 'cf.json', env_config)
         
     env = battle_env.parallel_env(**env_config)
 
@@ -119,34 +120,31 @@ if __name__ == '__main__':
     critic_dims = obs_len * env.n_agents
 
     # Red team is the maddpg team
-    red_team = maddpg.Team(red_agent_list, obs_len, env.n_actions, critic_dims, hyperparams['fc1_dims'], hyperparams['fc2_dims'], hyperparams['buffer_size'], hyperparams['batch_size'], hyperparams['gamma'], hyperparams['lr'], FOLDER)
+    red_team = maddpg.Team(red_agent_list, obs_len, env.n_actions, critic_dims, params['fc1_dims'], params['fc2_dims'], params['buffer_size'], params['batch_size'], params['gamma'], params['lr'], FOLDER)
     
     # Blue team is the instinct agent team
     blue_team = instinct.Team(blue_agent_list, red_agent_list, env)
 
     steps = 0
-    score_dict = {
-        "red": [],
-        "blue": []
-    }
 
     print(f'\n{" Starting Training ":=^43}')
     start = datetime.datetime.now()
 
     # Training loop
-    for i in range(1, hyperparams['n_games']+1):
+    for i in range(params['curr_game'], params['n_games']+1):
+        params['curr_game'] = i
         
         # The continuous update of the training loop
         now = datetime.datetime.now()
         elapsed = now - start
-        estimate = (elapsed.total_seconds() / i * hyperparams['n_games']) / 3600
-        sys.stdout.write(f"\r{' Episode {game} | %{percent:.1f} | {estimate:.1f} Hours Left '.format(game=i, percent=i/hyperparams['n_games']*100, estimate=estimate):=^43}") # Will overwrite the previous line
+        estimate = (elapsed.total_seconds() / i * params['n_games']) / 3600
+        sys.stdout.write(f"\r{' Episode {game} | %{percent:.1f} | {estimate:.1f} Hours Left '.format(game=i, percent=i/params['n_games']*100, estimate=estimate):=^43}") # Will overwrite the previous line
         
         observations = env.reset()
 
         # Reset noise for exploration of maddpg
-        explore_remaining = max(0, hyperparams['n_explores'] - i) / hyperparams['n_explores']
-        explore_scale = hyperparams['init_noise'] + (hyperparams['init_noise'] - hyperparams['final_noise']) * explore_remaining
+        explore_remaining = max(0, params['n_explores'] - i) / params['n_explores']
+        explore_scale = params['init_noise'] + (params['init_noise'] - params['final_noise']) * explore_remaining
         explore_scale = round(explore_scale, 2)
         red_team.scale_noise(explore_scale)
         red_team.reset_noise()
@@ -162,7 +160,7 @@ if __name__ == '__main__':
         for agent in blue_agent_list:
             blue_obs[agent] = observations[agent]
 
-        if i % hyperparams['render_interval'] == 0 and i > 0:
+        if i % params['render_interval'] == 0 and i > 0:
             env.show = True
             env.start_recording(f'{FOLDER}/training_vids/{i}.mp4') # Record the video of 1 game
 
@@ -201,12 +199,13 @@ if __name__ == '__main__':
             red_team.memory.store_transition(red_obs, red_actions, red_rewards, red_obs_, red_dones)
 
             # Learn from the replay buffer
-            if steps % hyperparams['learn_interval'] == 0 and steps > 0:
+            if steps % params['learn_interval'] == 0 and steps > 0:
                 red_team.learn()
 
-            # Save the model
-            if steps % hyperparams['save_interval'] == 0 and steps > 0:
+            # Save the model and scores
+            if steps % params['save_interval'] == 0 and steps > 0:
                 red_team.save_models()
+                save_dict(FOLDER + 'scores.json', score_dict)
 
             red_obs = red_obs_
             blue_obs = blue_obs_
@@ -217,7 +216,7 @@ if __name__ == '__main__':
             steps += 1
 
         # Print update
-        if i % hyperparams['print_interval'] == 0:
+        if i % params['print_interval'] == 0:
             now = datetime.datetime.now()
             elapsed = now - start
             s = elapsed.total_seconds()
@@ -227,8 +226,8 @@ if __name__ == '__main__':
             formatted_elapsed = f'{int(hr):02}:{int(min):02}:{int(sec):02}'
             formatted_time = now.strftime("%I:%M:%S %p")
 
-            avg_red = np.mean(score_dict['red'][-hyperparams['print_interval']:])
-            avg_blue = np.mean(score_dict['blue'][-hyperparams['print_interval']:])
+            avg_red = np.mean(score_dict['red'][-params['print_interval']:])
+            avg_blue = np.mean(score_dict['blue'][-params['print_interval']:])
 
             statement = (
                 f"\n{'-'*43}\n"
