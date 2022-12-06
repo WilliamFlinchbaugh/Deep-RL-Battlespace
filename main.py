@@ -9,31 +9,34 @@ import sys
 import json
 import shutil
 
+# TODO: Save and load the number of games already played so that it can be continued
+# TODO: Save and load the scores for each team so that they can be plotted even after the program is closed
+
 hyperparams = {
     'gamma': 0.95,
-    'lr': 0.001,
-    'buffer_size': 400_000,
-    'batch_size': 64,
+    'lr': 0.01,
+    'buffer_size': 1_000_000,
+    'batch_size': 512,
     'fc1_dims': 64,
     'fc2_dims': 64,
     'init_noise': 0.4,
     'final_noise': 0.01,
     'n_explores': 30000,
     'print_interval': 100,
-    'save_interval': 100,
+    'save_interval': 1000,
     'learn_interval': 100,
     'render_interval': 500,
-    'max_episodes': 500_000,
+    'n_games': 500_000
 }
 
 env_config = {
     'n_agents': 2, # Number of planes on each team
     'show': False, # Show visuals
-    'hit_base_reward': 100, # Reward value for hitting enemy base
-    'hit_plane_reward': 100, # Reward value for hitting enemy plane
-    'miss_punishment': -2, # Punishment value for missing a shot
-    'die_punishment': -10, # Punishment value for a plane dying
-    'lose_punishment': -10, # Punishment for losing the game (The goal is to possibly defend the base)
+    'hit_base_reward': 1.0, # Reward value for hitting enemy base
+    'hit_plane_reward': 0.8, # Reward value for hitting enemy plane
+    'miss_punishment': -0.01, # Punishment value for missing a shot
+    'die_punishment': -0.1, # Punishment value for a plane dying
+    'lose_punishment': -0.5, # Punishment for losing the game (The goal is to possibly defend the base)
     'fps': 20, # Framerate that the visuals run at
     'continuous_actions': False
 }
@@ -51,13 +54,16 @@ def save_config(path, config):
         f.write(json.dumps(config))
 
 if __name__ == '__main__':
+    
     # Menu
     print('1. Override a model')
     print('2. Continue training a model')
     print('3. Train a new model')
     print('4. Quit')
     choice = input('Enter a number: ')
-    if choice == '1':
+    if choice == '1': # Override a model
+        
+        # Delete the model folder and create a new one
         model_name = input('Enter model name: ')
         model_path = f'models/{model_name}'
         if not os.path.exists(model_path):
@@ -67,24 +73,31 @@ if __name__ == '__main__':
         FOLDER = model_path
         os.makedirs(model_path)
         os.makedirs(f'{model_path}/training_vids')
+        
+        # Save hyperparams and env_config
         save_hyperparams(FOLDER, hyperparams)
         save_config(FOLDER, env_config)
 
-    elif choice == '2':
+    elif choice == '2': # Continue training a model
         model_name = input('Enter model name: ')
         FOLDER = f'models/{model_name}'
         if not os.path.exists(FOLDER):
             print('Model does not exist')
             sys.exit()
+            
+        # Load hyperparams and env_config
         with open(f'{FOLDER}/hyperparams.json', 'r') as f:
             hyperparams = json.load(f)
         with open(f'{FOLDER}/env_config.json', 'r') as f:
             env_config = json.load(f)
-        hyperparams['max_episodes'] = int(input('Enter number of games to train: '))
+            
+        hyperparams['n_games'] = int(input('Enter number of games to train: '))
+        
+        # Save hyperparams and env_config
         save_hyperparams(FOLDER, hyperparams)
         save_config(FOLDER, env_config)
             
-    elif choice == '3':
+    elif choice == '3': # Train a new model
         # Create a new folder for the model
         for i in range(1, 100):
             if not os.path.exists(f'models/{i}'):
@@ -92,6 +105,8 @@ if __name__ == '__main__':
                 os.makedirs(FOLDER)
                 os.makedirs(f'{FOLDER}/training_vids')
                 break
+            
+        # Save hyperparams and env_config
         save_hyperparams(FOLDER, hyperparams)
         save_config(FOLDER, env_config)
         
@@ -103,7 +118,10 @@ if __name__ == '__main__':
     obs_len = env.observation_space(red_agent_list[0]).shape[0]
     critic_dims = obs_len * env.n_agents
 
+    # Red team is the maddpg team
     red_team = maddpg.Team(red_agent_list, obs_len, env.n_actions, critic_dims, hyperparams['fc1_dims'], hyperparams['fc2_dims'], hyperparams['buffer_size'], hyperparams['batch_size'], hyperparams['gamma'], hyperparams['lr'], FOLDER)
+    
+    # Blue team is the instinct agent team
     blue_team = instinct.Team(blue_agent_list, red_agent_list, env)
 
     steps = 0
@@ -116,13 +134,17 @@ if __name__ == '__main__':
     start = datetime.datetime.now()
 
     # Training loop
-    for i in range(1, hyperparams['max_episodes']+1):
+    for i in range(1, hyperparams['n_games']+1):
+        
+        # The continuous update of the training loop
         now = datetime.datetime.now()
         elapsed = now - start
-        estimate = (elapsed.total_seconds() / i * hyperparams['max_episodes']) / 3600
-        sys.stdout.write(f"\r{' Episode {game} | %{percent:.1f} | {estimate:.1f} Hours Left '.format(game=i, percent=i/hyperparams['max_episodes']*100, estimate=estimate):=^43}")
+        estimate = (elapsed.total_seconds() / i * hyperparams['n_games']) / 3600
+        sys.stdout.write(f"\r{' Episode {game} | %{percent:.1f} | {estimate:.1f} Hours Left '.format(game=i, percent=i/hyperparams['n_games']*100, estimate=estimate):=^43}") # Will overwrite the previous line
+        
         observations = env.reset()
 
+        # Reset noise for exploration of maddpg
         explore_remaining = max(0, hyperparams['n_explores'] - i) / hyperparams['n_explores']
         explore_scale = hyperparams['init_noise'] + (hyperparams['init_noise'] - hyperparams['final_noise']) * explore_remaining
         explore_scale = round(explore_scale, 2)
@@ -133,7 +155,8 @@ if __name__ == '__main__':
         blue_score = 0
         red_obs = {}
         blue_obs = {}
-
+        
+        # Organize all the observations by team
         for agent in red_agent_list:
             red_obs[agent] = observations[agent]
         for agent in blue_agent_list:
@@ -141,16 +164,15 @@ if __name__ == '__main__':
 
         if i % hyperparams['render_interval'] == 0 and i > 0:
             env.show = True
-            env.start_recording(f'{FOLDER}/training_vids/{i}.mp4')
-            # plot_data(score_dict, FOLDER + '/scores.svg')
+            env.start_recording(f'{FOLDER}/training_vids/{i}.mp4') # Record the video of 1 game
 
         elif env.show == True:
-            env.export_video()
+            env.export_video() # Stop recording video
             env.show = False
             env.close()
 
         while not env.env_done:
-            actions = merge_dicts(red_team.choose_actions(red_obs), blue_team.choose_actions(blue_obs))
+            actions = merge_dicts(red_team.choose_actions(red_obs), blue_team.choose_actions(blue_obs)) # Put together actions from both teams
 
             observations_, rewards, dones, _ = env.step(actions)
 
@@ -163,6 +185,7 @@ if __name__ == '__main__':
             blue_rewards = {}
             blue_dones = {}
 
+            # Organize all every return by team
             for agent in red_agent_list:
                 red_obs_[agent] = observations_[agent]
                 red_actions[agent] = actions[agent]
@@ -174,21 +197,26 @@ if __name__ == '__main__':
                 blue_obs_[agent] = observations_[agent]
                 blue_score += rewards[agent]
 
+            # Store the transitions in the replay buffer
             red_team.memory.store_transition(red_obs, red_actions, red_rewards, red_obs_, red_dones)
 
+            # Learn from the replay buffer
             if steps % hyperparams['learn_interval'] == 0 and steps > 0:
                 red_team.learn()
 
+            # Save the model
             if steps % hyperparams['save_interval'] == 0 and steps > 0:
                 red_team.save_models()
 
             red_obs = red_obs_
             blue_obs = blue_obs_
 
+            # Append scores
             score_dict['red'].append(red_score)
             score_dict['blue'].append(blue_score)
             steps += 1
 
+        # Print update
         if i % hyperparams['print_interval'] == 0:
             now = datetime.datetime.now()
             elapsed = now - start
@@ -215,4 +243,5 @@ if __name__ == '__main__':
             )
             print(statement)
 
+    # Plot training scores
     plot_data(score_dict, FOLDER + '/scores.svg')
