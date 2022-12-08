@@ -130,6 +130,8 @@ if __name__ == '__main__':
     print(f'\n{" Starting Training ":=^43}')
     start = datetime.datetime.now()
 
+    start_game = params['curr_game']-1
+    
     # Training loop
     for i in range(params['curr_game'], params['n_games']+1):
         params['curr_game'] = i
@@ -137,10 +139,10 @@ if __name__ == '__main__':
         # The continuous update of the training loop
         now = datetime.datetime.now()
         elapsed = now - start
-        estimate = (elapsed.total_seconds() / i * params['n_games']) / 3600
+        estimate = (elapsed.total_seconds() / (i-start_game) * (params['n_games']-i)) / 3600
         sys.stdout.write(f"\r{' Game {game} | %{percent:.1f} | {estimate:.1f} Hours Left '.format(game=i, percent=i/params['n_games']*100, estimate=estimate):=^43}") # Will overwrite the previous line
         
-        observations = env.reset()
+        observations = env.reset() # Reset the environment
 
         # Reset noise for exploration of maddpg
         explore_remaining = max(0, params['n_explores'] - i) / params['n_explores']
