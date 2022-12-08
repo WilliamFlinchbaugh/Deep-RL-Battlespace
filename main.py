@@ -76,8 +76,8 @@ if __name__ == '__main__':
         os.makedirs(f'{model_path}/training_vids')
         
         # Save params and env_config
-        save_dict(FOLDER + 'params.json', params)
-        save_dict(FOLDER + 'cf.json', env_config)
+        save_dict(FOLDER + '/params.json', params)
+        save_dict(FOLDER + '/cf.json', env_config)
 
     elif choice == '2': # Continue training a model
         model_name = input('Enter model name: ')
@@ -95,8 +95,8 @@ if __name__ == '__main__':
             score_dict = json.load(f)
 
         # Save params and env_config
-        save_dict(FOLDER + 'params.json', params)
-        save_dict(FOLDER + 'cf.json', env_config)
+        save_dict(FOLDER + '/params.json', params)
+        save_dict(FOLDER + '/cf.json', env_config)
             
     elif choice == '3': # Train a new model
         # Create a new folder for the model
@@ -108,8 +108,8 @@ if __name__ == '__main__':
                 break
             
         # Save params and env_config
-        save_dict(FOLDER + 'params.json', params)
-        save_dict(FOLDER + 'cf.json', env_config)
+        save_dict(FOLDER + '/params.json', params)
+        save_dict(FOLDER + '/cf.json', env_config)
         
     env = battle_env.parallel_env(**env_config)
 
@@ -138,7 +138,7 @@ if __name__ == '__main__':
         now = datetime.datetime.now()
         elapsed = now - start
         estimate = (elapsed.total_seconds() / i * params['n_games']) / 3600
-        sys.stdout.write(f"\r{' Episode {game} | %{percent:.1f} | {estimate:.1f} Hours Left '.format(game=i, percent=i/params['n_games']*100, estimate=estimate):=^43}") # Will overwrite the previous line
+        sys.stdout.write(f"\r{' Game {game} | %{percent:.1f} | {estimate:.1f} Hours Left '.format(game=i, percent=i/params['n_games']*100, estimate=estimate):=^43}") # Will overwrite the previous line
         
         observations = env.reset()
 
@@ -202,17 +202,18 @@ if __name__ == '__main__':
             if steps % params['learn_interval'] == 0 and steps > 0:
                 red_team.learn()
 
-            # Save the model and scores
+            # Save the model and scores and params
             if steps % params['save_interval'] == 0 and steps > 0:
                 red_team.save_models()
-                save_dict(FOLDER + 'scores.json', score_dict)
+                save_dict(FOLDER + '/scores.json', score_dict)
+                save_dict(FOLDER + '/params.json', params)
 
             red_obs = red_obs_
             blue_obs = blue_obs_
 
             # Append scores
-            score_dict['red'].append(red_score)
-            score_dict['blue'].append(blue_score)
+            score_dict['red'].append(round(red_score, 3))
+            score_dict['blue'].append(round(blue_score, 3))
             steps += 1
 
         # Print update
@@ -226,8 +227,8 @@ if __name__ == '__main__':
             formatted_elapsed = f'{int(hr):02}:{int(min):02}:{int(sec):02}'
             formatted_time = now.strftime("%I:%M:%S %p")
 
-            avg_red = np.mean(score_dict['red'][-params['print_interval']:])
-            avg_blue = np.mean(score_dict['blue'][-params['print_interval']:])
+            avg_red = round(np.mean(score_dict['red'][-params['print_interval']:]), 3)
+            avg_blue = round(np.mean(score_dict['blue'][-params['print_interval']:]), 3)
 
             statement = (
                 f"\n{'-'*43}\n"
