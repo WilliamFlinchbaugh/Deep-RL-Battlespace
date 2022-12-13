@@ -9,9 +9,6 @@ import sys
 import json
 import shutil
 
-# TODO: Save and load the number of games already played so that it can be continued
-# TODO: Save and load the scores for each team so that they can be plotted even after the program is closed
-
 params = {
     'gamma': 0.95,
     'lr': 0.01,
