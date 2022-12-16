@@ -1,0 +1,1 @@
+{"n_agents": 2, "show": false, "hit_base_reward": 1.0, "hit_plane_reward": 0.9, "miss_punishment": -0.02, "die_punishment": -0.03, "lose_punishment": -0.05, "fps": 20, "continuous_actions": false}

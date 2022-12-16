@@ -1,0 +1,1 @@
+{"gamma": 0.95, "lr": 0.001, "buffer_size": 1000000, "batch_size": 512, "fc1_dims": 64, "fc2_dims": 64, "init_noise": 0.4, "final_noise": 0.01, "n_explores": 30000, "print_interval": 100, "save_interval": 1000, "learn_interval": 100, "render_interval": 500, "n_games": 500000, "curr_game": 32419}
