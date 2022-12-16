@@ -11,7 +11,7 @@ import shutil
 
 params = {
     'gamma': 0.95,
-    'lr': 0.01,
+    'lr': 0.001,
     'buffer_size': 1_000_000,
     'batch_size': 512,
     'fc1_dims': 64,
@@ -31,10 +31,10 @@ env_config = {
     'n_agents': 2, # Number of planes on each team
     'show': False, # Show visuals
     'hit_base_reward': 1.0, # Reward value for hitting enemy base
-    'hit_plane_reward': 0.8, # Reward value for hitting enemy plane
-    'miss_punishment': -0.05, # Punishment value for missing a shot
-    'die_punishment': -0.1, # Punishment value for a plane dying
-    'lose_punishment': -0.5, # Punishment for losing the game (The goal is to possibly defend the base)
+    'hit_plane_reward': 0.9, # Reward value for hitting enemy plane
+    'miss_punishment': -0.02, # Punishment value for missing a shot
+    'die_punishment': -0.03, # Punishment value for a plane dying
+    'lose_punishment': -0.05, # Punishment for losing the game (The goal is to possibly defend the base)
     'fps': 20, # Framerate that the visuals run at
     'continuous_actions': False
 }
