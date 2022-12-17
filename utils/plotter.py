@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import os
+import json
 
 def plot_scores(score_dict, filename):
     fig, ax = plt.subplots()
@@ -40,8 +42,8 @@ def plot_scores(score_dict, filename):
 
 if __name__ == '__main__':
     model_name = input("Which model to plot?: ")
-    scores_file = f'../models/{model_name}/scores.json'
+    scores_file = f'models/{model_name}/scores.json'
     scores = {}
     with open(scores_file, 'r') as f:
         scores = json.load(f)
-    plot_scores(scores, f'../models/{model_name}/plotted_scores.svg')
+    plot_scores(scores, f'models/{model_name}/plotted_scores.svg')
