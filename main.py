@@ -18,6 +18,7 @@ params = {
     'fc2_dims': 64,
     'init_noise': 0.4,
     'final_noise': 0.01,
+    'curr_noise': 0,
     'n_explores': 30000,
     'print_interval': 100,
     'save_interval': 1000,
@@ -143,9 +144,9 @@ if __name__ == '__main__':
 
         # Reset noise for exploration of maddpg
         explore_remaining = max(0, params['n_explores'] - i) / params['n_explores']
-        explore_scale = params['init_noise'] + (params['init_noise'] - params['final_noise']) * explore_remaining
-        explore_scale = round(explore_scale, 2)
-        red_team.scale_noise(explore_scale)
+        params['curr_noise'] = params['init_noise'] + (params['init_noise'] - params['final_noise']) * explore_remaining
+        params['curr_noise'] = round(params['curr_noise'], 2)
+        red_team.scale_noise(params['curr_noise'])
         red_team.reset_noise()
 
         red_score = 0
