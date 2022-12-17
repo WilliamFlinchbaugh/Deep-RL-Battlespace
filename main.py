@@ -4,7 +4,6 @@ import instinct.team as instinct
 import numpy as np
 import os
 import datetime
-from utils.utils import plot_data
 import sys
 import json
 import shutil
@@ -236,12 +235,9 @@ if __name__ == '__main__':
                 f"| {('Elapsed Time: ' + formatted_elapsed):<40}|\n"
                 f"| {('Games: ' + str(i)):<40}|\n"
                 f"| {('Timesteps: ' + str(steps)):<40}|\n"
-                f"| {('Exploration Scale: ' + str(explore_scale)):<40}|\n"
+                f"| {('Exploration Scale: ' + str(params['curr_noise'])):<40}|\n"
                 f"| {('Red Avg Score: ' + str(avg_red)):<40}|\n"
                 f"| {('Blue Avg Score: ' + str(avg_blue)):<40}|\n"
                 f"{'-'*43}\n"
             )
             print(statement)
-
-    # Plot training scores
-    plot_data(score_dict, FOLDER + '/scores.svg')
