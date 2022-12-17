@@ -112,7 +112,6 @@ if __name__ == '__main__':
 
     red_agent_list = env.possible_red
     blue_agent_list = env.possible_blue
-
     obs_len = env.observation_space(red_agent_list[0]).shape[0]
     critic_dims = obs_len * env.n_agents
 
@@ -122,12 +121,12 @@ if __name__ == '__main__':
     # Blue team is the instinct agent team
     blue_team = instinct.Team(blue_agent_list, red_agent_list, env)
 
-    steps = 0
 
     print(f'\n{" Starting Training ":=^43}')
-    start = datetime.datetime.now()
 
-    start_game = params['curr_game']-1
+    start = datetime.datetime.now() # Capture the starting time
+    steps = 0 # Total timesteps
+    start_game = params['curr_game']-1 # Game started at to estimate time remaining
     
     # Training loop
     for i in range(params['curr_game'], params['n_games']+1):
