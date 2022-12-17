@@ -168,6 +168,7 @@ if __name__ == '__main__':
             env.show = False
             env.close()
 
+        # Play the game
         while not env.env_done:
             actions = merge_dicts(red_team.choose_actions(red_obs), blue_team.choose_actions(blue_obs)) # Put together actions from both teams
 
@@ -209,11 +210,13 @@ if __name__ == '__main__':
 
             red_obs = red_obs_
             blue_obs = blue_obs_
-
-            # Append scores
-            score_dict['red'].append(round(red_score, 3))
-            score_dict['blue'].append(round(blue_score, 3))
             steps += 1
+            
+        # Game is done
+        
+        # Append scores
+        score_dict['red'].append(round(red_score, 3))
+        score_dict['blue'].append(round(blue_score, 3))
 
         # Print update
         if i % params['print_interval'] == 0:
@@ -226,6 +229,7 @@ if __name__ == '__main__':
             formatted_elapsed = f'{int(hr):02}:{int(min):02}:{int(sec):02}'
             formatted_time = now.strftime("%I:%M:%S %p")
 
+            # Average the scores from the last {print_interval} games
             avg_red = round(np.mean(score_dict['red'][-params['print_interval']:]), 3)
             avg_blue = round(np.mean(score_dict['blue'][-params['print_interval']:]), 3)
 
