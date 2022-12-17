@@ -202,7 +202,7 @@ if __name__ == '__main__':
                 red_team.learn()
 
             # Save the model and scores and params
-            if steps % params['save_interval'] == 0 and steps > 0:
+            if steps % params['save_interval'] == 0:
                 red_team.save_models()
                 save_dict(FOLDER + '/scores.json', score_dict)
                 save_dict(FOLDER + '/params.json', params)
