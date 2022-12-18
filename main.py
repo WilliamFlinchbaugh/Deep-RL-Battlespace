@@ -44,6 +44,12 @@ score_dict = {
     "blue": []
 }
 
+win_dict = {
+    "red": 0,
+    "blue": 0,
+    "tie": 0
+}
+
 def merge_dicts(dict1, dict2):
     dict2.update(dict1)
     return dict2
@@ -90,6 +96,8 @@ if __name__ == '__main__':
             env_config = json.load(f)
         with open(f'{FOLDER}/scores.json', 'r') as f:
             score_dict = json.load(f)
+        with open(f'{FOLDER}/wins.json', 'r') as f:
+            win_dict = json.load(f)
 
         # Save params and env_config
         save_dict(FOLDER + '/params.json', params)
@@ -120,7 +128,6 @@ if __name__ == '__main__':
     
     # Blue team is the instinct agent team
     blue_team = instinct.Team(blue_agent_list, red_agent_list, env)
-
 
     print(f'\n{" Starting Training ":=^43}')
 
@@ -201,22 +208,27 @@ if __name__ == '__main__':
             if steps % params['learn_interval'] == 0 and steps > 0:
                 red_team.learn()
 
-            # Save the model and scores and params
-            if steps % params['save_interval'] == 0:
-                red_team.save_models()
-                save_dict(FOLDER + '/scores.json', score_dict)
-                save_dict(FOLDER + '/params.json', params)
 
             red_obs = red_obs_
             blue_obs = blue_obs_
             steps += 1
             
         # Game is done
+
+        # Increment the winner
+        win_dict[env.winner] += 1
         
         # Append scores
         score_dict['red'].append(round(red_score, 3))
         score_dict['blue'].append(round(blue_score, 3))
 
+        # Save the model and scores and params (params for the curr_game and exploration)
+        if steps % params['save_interval'] == 0:
+            red_team.save_models()
+            save_dict(FOLDER + '/scores.json', score_dict)
+            save_dict(FOLDER + '/wins.json', win_dict)
+            save_dict(FOLDER + '/params.json', params)
+        
         # Print update
         if i % params['print_interval'] == 0:
             now = datetime.datetime.now()
@@ -232,15 +244,20 @@ if __name__ == '__main__':
             avg_red = round(np.mean(score_dict['red'][-params['print_interval']:]), 3)
             avg_blue = round(np.mean(score_dict['blue'][-params['print_interval']:]), 3)
 
+            # Get the winrates from the last {print_interval} games
+            red_winrate = round(win_dict['red']/params['print_interval'], 3)
+            blue_winrate = round(win_dict['blue']/params['print_interval'], 3)
+
             statement = (
                 f"\n{'-'*43}\n"
                 f"| {('Current Time: ' + formatted_time):<40}|\n"
                 f"| {('Elapsed Time: ' + formatted_elapsed):<40}|\n"
                 f"| {('Games: ' + str(i)):<40}|\n"
                 f"| {('Timesteps: ' + str(steps)):<40}|\n"
-                f"| {('Exploration Scale: ' + str(params['curr_noise'])):<40}|\n"
                 f"| {('Red Avg Score: ' + str(avg_red)):<40}|\n"
                 f"| {('Blue Avg Score: ' + str(avg_blue)):<40}|\n"
+                f"| {('Red Winrate: ' + str(red_winrate) + '%'):<40}|\n"
+                f"| {('Blue Winrate: ' + str(blue_winrate) + '%'):<40}|\n"
                 f"{'-'*43}\n"
             )
             print(statement)
