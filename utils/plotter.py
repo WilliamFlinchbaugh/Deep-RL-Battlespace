@@ -21,23 +21,8 @@ def plot_scores(score_dict, filename):
 
     # Plot raw averages
     print("Plotting averages over 1000 games...")
-    plt.plot(x, red_avg, color='red', alpha=0.3)
-    plt.plot(x, blue_avg, color='blue', alpha=0.3)
-
-    # Smooth lines and plot
-    red_smooth = []
-    blue_smooth = []
-    window = 100000
-    print("Gathering averages over 100,000 games...")
-    x = np.arange(0, len(red_y) - window + 1)
-    for i in range(len(red_y) - window + 1):
-        red_smooth.append(np.mean(red_y[i:i+window]))
-        blue_smooth.append(np.mean(blue_y[i:i+window]))
-
-    # Plot smooth averages
-    print("Plotting averages over 100,000 games...")
-    plt.plot(x, red_smooth, color='red', label='Red Team')
-    plt.plot(x, blue_smooth, color='blue', label='Blue Team')
+    plt.plot(x, red_avg, color='red', alpha=1, label='Red Team')
+    plt.plot(x, blue_avg, color='blue', alpha=1, label='Blue Team')
 
     ax.set_title('Average score over time')
     ax.set_xlabel('Number of games played')
