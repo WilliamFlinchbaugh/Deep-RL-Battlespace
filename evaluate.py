@@ -49,7 +49,7 @@ def main():
         "tie": 0
     }
 
-    for _ in range(100):
+    for _ in range(10000):
         observations = env.reset()
 
         red_obs = {}
@@ -80,9 +80,10 @@ def main():
     print(wins)
     fig, ax = plt.subplots()
     colors = ['red', 'blue', 'grey']
-    labels = ['Red Wins', 'Blue Wins', 'Tie']
+    labels = ['Red Team', 'Blue Team', 'Tie']
     ax.pie(wins.values(), labels=labels, autopct='%1.1f%%', colors=colors)
     ax.axis('equal')
+    ax.set_title('Winrates Over 10000 Games')
     plt.show()
 
 if __name__ == '__main__':
