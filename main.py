@@ -44,12 +44,6 @@ score_dict = {
     "blue": []
 }
 
-win_dict = {
-    "red": 0,
-    "blue": 0,
-    "tie": 0
-}
-
 def merge_dicts(dict1, dict2):
     dict2.update(dict1)
     return dict2
@@ -96,8 +90,6 @@ if __name__ == '__main__':
             env_config = json.load(f)
         with open(f'{FOLDER}/scores.json', 'r') as f:
             score_dict = json.load(f)
-        with open(f'{FOLDER}/wins.json', 'r') as f:
-            win_dict = json.load(f)
 
         # Save params and env_config
         save_dict(FOLDER + '/params.json', params)
@@ -134,7 +126,12 @@ if __name__ == '__main__':
     start = datetime.datetime.now() # Capture the starting time
     steps = 0 # Total timesteps
     start_game = params['curr_game']-1 # Game started at to estimate time remaining
-    
+    wins = {
+        'red': 0,
+        'blue': 0,
+        'tie': 0
+    }
+
     # Training loop
     for i in range(params['curr_game'], params['n_games']+1):
         params['curr_game'] = i
@@ -216,7 +213,7 @@ if __name__ == '__main__':
         # Game is done
 
         # Increment the winner
-        win_dict[env.winner] += 1
+        wins[env.winner] += 1
         
         # Append scores
         score_dict['red'].append(round(red_score, 3))
@@ -226,7 +223,6 @@ if __name__ == '__main__':
         if steps % params['save_interval'] == 0:
             red_team.save_models()
             save_dict(FOLDER + '/scores.json', score_dict)
-            save_dict(FOLDER + '/wins.json', win_dict)
             save_dict(FOLDER + '/params.json', params)
         
         # Print update
@@ -245,8 +241,14 @@ if __name__ == '__main__':
             avg_blue = round(np.mean(score_dict['blue'][-params['print_interval']:]), 3)
 
             # Get the winrates from the last {print_interval} games
-            red_winrate = round(win_dict['red']/params['print_interval'], 3)
-            blue_winrate = round(win_dict['blue']/params['print_interval'], 3)
+            red_winrate = round(wins['red']/params['print_interval'], 3)
+            blue_winrate = round(wins['blue']/params['print_interval'], 3)
+            tie_rate = round(wins['tie']/params['print_interval'], 3)
+
+            # Reset the wins
+            wins['red'] = 0
+            wins['blue'] = 0
+            wins['tie'] = 0
 
             statement = (
                 f"\n{'-'*43}\n"
@@ -258,6 +260,7 @@ if __name__ == '__main__':
                 f"| {('Blue Avg Score: ' + str(avg_blue)):<40}|\n"
                 f"| {('Red Winrate: ' + str(red_winrate) + '%'):<40}|\n"
                 f"| {('Blue Winrate: ' + str(blue_winrate) + '%'):<40}|\n"
+                f"| {('Tie Rate: ' + str(tie_rate) + '%'):<40}|\n"
                 f"{'-'*43}\n"
             )
             print(statement)
