@@ -98,6 +98,6 @@ class Team:
         for agent in self.agents.values():
             agent.save_models()
 
-    def load_modles(self):
+    def load_models(self):
         for agent in self.agents.values():
             agent.load_models()
