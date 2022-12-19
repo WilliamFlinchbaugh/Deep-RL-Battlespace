@@ -121,6 +121,9 @@ if __name__ == '__main__':
     # Blue team is the instinct agent team
     blue_team = instinct.Team(blue_agent_list, red_agent_list, env)
 
+    if choice == '2': # Continue training a model
+        red_team.load_models() # Load the models from the folder
+
     print(f'\n{" Starting Training ":=^43}')
 
     start = datetime.datetime.now() # Capture the starting time
@@ -204,7 +207,6 @@ if __name__ == '__main__':
             # Learn from the replay buffer
             if steps % params['learn_interval'] == 0 and steps > 0:
                 red_team.learn()
-
 
             red_obs = red_obs_
             blue_obs = blue_obs_
