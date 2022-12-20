@@ -26,7 +26,7 @@ I went with MADDPG because of the simplicity. I referenced two different repos f
 - https://github.com/shariqiqbal2810/maddpg-pytorch
 - https://github.com/philtabor/Multi-Agent-Deep-Deterministic-Policy-Gradients
  
-After implementing the MADDPG model, I created an "instinct agent" or an algorithm for the opposing team that has a fixed policy. See more details below under behavior.
+After implementing the MADDPG model, we branched off into two different ways of playing. One was the "self-play" approach where both teams were learning against each other, but this didn't give many results. Instead, I created an "instinct agent" or an algorithm for the opposing team that has a fixed policy. See more details below under behavior.
 
 The "completed_model" in the models folder is the finished model that will be shown to CAE. It wins ~80% of games against the instinct teams and seems to display interesting behavior. It can be tested with the evaluate.py file.
 
@@ -77,6 +77,7 @@ To install the dependencies for this project, run the following command:
  
 `pip install -r requirements.txt`
 
+Then, simply run the main file to start training. You can tweak the hyperparameters or the length of training in the main.py file.
  
 If you need any help getting the code to run, feel free to email me at WilliamFlinchbaugh@gmail.com or message me on discord: BallpointPen#6113
  
