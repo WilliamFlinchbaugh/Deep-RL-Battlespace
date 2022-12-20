@@ -34,6 +34,8 @@ The "completed_model" in the models folder is the finished model that will be sh
 ### MADDPG
 The Multi-Agent Deep Deterministic Policy Gradient is an off-policy temporal difference (TD) algorithm for multi-agent environments. It works using a critic network which estimates the Q-value from the actions and observations of the agent's teammates. That Q-value recommends the moves to the actor network which chooses actions based on that agent's observations alone. A diagram is shown below:
 
+![maddpg drawio (2)](https://user-images.githubusercontent.com/65684280/208565295-d1e9f080-af33-4a6f-aa94-f604f21e228a.png)
+
 ### Instinct
 The instinct agents are just agents controlled by a set policy. First the agent chooses its target by scoring each of the enemies and then choosing the minimum. The score, s, is calculated through the following equation where d is the distance to the enemy and a is the angle of the enemy relative to the agent:
 $s = d*\lvert a\rvert$
@@ -67,10 +69,8 @@ Then, open an anaconda prompt from start menu and run
  
 `conda init powershell`
 
-
 `code .`
 
- 
 That should open up VSCode through anaconda. After that, you should only need to change the interpreter in the bottom right to miniconda3 base.
  
 To install the dependencies for this project, run the following command:
