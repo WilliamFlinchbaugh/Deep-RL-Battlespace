@@ -11,16 +11,16 @@ CAE contacted UNT a while back about research with a deep reinforcement learning
  
 # Status/Updates:
 At the start of 2022, Rebecca and Mounika created a basic q-learning model with a relatively basic environment. The graphics were only still images from matplotlib.
-In Summer 2022, I essentially completely transformed everything. I adapted the old environment to an OpenAI Gym environment (agent-vs-random and agent-vs-pretrained-model) that uses pygame. I trained the one agent using Stable-Baselines3 PPO and DQN. First we trained it against an agent using random choice (it had the choices forward, shoot, to enemy base, and to enemy plane). Then, I took that trained agent and placed it into the blue plane and trained the red plane against it.
+In Summer 2022, I essentially completely transformed everything. I adapted the old environment to an [OpenAI Gym](https://github.com/openai/gym) environment that uses pygame. I trained the one agent using [Stable-Baselines3](https://stable-baselines3.readthedocs.io/en/master/) PPO and DQN. First we trained it against an agent using random choice (it had the choices forward, shoot, to enemy base, and to enemy plane). Then, I took that trained agent and placed it into the blue plane and trained the red plane against it.
  
-However, we wanted to tackle multi-agent reinforcement learning (MARL) to see if wed could get planes to collaborate. So, I turned that Gym environment into a PettingZoo environment. We had to switch off of SB3 because it does not support MARL.
+However, we wanted to tackle multi-agent reinforcement learning (MARL) to see if we could get planes to collaborate. So, I turned that Gym environment into a [PettingZoo](https://pettingzoo.farama.org/) environment. We had to switch off of SB3 because it does not support MARL.
  
-There was a small effort on a Unity game (not in repo) because Unity’s ML-Agents seems much better for this application since PettingZoo and other MARL frameworks are also still in their early development stages (PettingZoo was released in 2020). This effort could be continued in the future for a 3D environment with proper physics.
+There was a small effort on a Unity game (not in repo) because Unity’s [ML-Agents](https://unity.com/products/machine-learning-agents) seems much better for this application since PettingZoo and other MARL frameworks are also still in their early development stages (PettingZoo was released in 2020). This effort could be continued in the future for a 3D environment with proper physics. In addition, unity already has MARL algorithms for co-op/competitive environments built in.
  
 After using some completely decentralized algorithms, I transitioned to looking for strategies to harbor collaboration between teammates, but still have the planes make their own independent decisions. Here are the approaches I could find (there are not many of these approaches yet):
-- Learning to Share (LToS): https://arxiv.org/pdf/2112.08702.pdf
-- Actor-Attention-Critic (MAAC): https://arxiv.org/pdf/1810.02912.pdf
-- Multi-Agent Deep Deterministic Policy (MADDPG): https://arxiv.org/abs/1706.02275
+- [Learning to Share (LToS)](https://arxiv.org/pdf/2112.08702.pdf)
+- [Actor-Attention-Critic (MAAC)](https://arxiv.org/pdf/1810.02912.pdf)
+- [Multi-Agent Deep Deterministic Policy (MADDPG)](https://arxiv.org/abs/1706.02275)
 
 I went with MADDPG because of the simplicity. I referenced two different repos for help on the model:
 - https://github.com/shariqiqbal2810/maddpg-pytorch
