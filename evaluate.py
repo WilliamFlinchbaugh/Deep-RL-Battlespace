@@ -77,14 +77,36 @@ def main():
         
         wins[env.winner] += 1
 
-    print(wins)
-    fig, ax = plt.subplots()
-    colors = ['red', 'blue', 'grey']
-    labels = ['Red Team', 'Blue Team', 'Tie']
-    ax.pie(wins.values(), labels=labels, autopct='%1.1f%%', colors=colors)
-    ax.axis('equal')
-    ax.set_title('Winrates Over 10000 Games')
-    plt.show()
+    env.show = True
+    env.start_recording(path=f'{FOLDER}/eval_videos/')
+
+    for _ in range(10):
+        observations = env.reset()
+
+        red_obs = {}
+        blue_obs = {}
+        red_obs_ = {}
+        blue_obs_ = {}
+
+        for agent in red_agent_list:
+            red_obs[agent] = observations[agent]
+        for agent in blue_agent_list:
+            blue_obs[agent] = observations[agent]
+
+        observations = env.reset()
+        actions = {}
+
+        while not env.env_done:
+            actions = merge_dicts(red_team.choose_actions(red_obs), blue_team.choose_actions(blue_obs))
+            observations_, rewards, dones, _ = env.step(actions)
+            for agent in red_agent_list:
+                red_obs_[agent] = observations_[agent]
+            for agent in blue_agent_list:
+                blue_obs_[agent] = observations_[agent]
+            red_obs = red_obs_
+            blue_obs = blue_obs_
+
+    env.stop_recording()
 
 if __name__ == '__main__':
     main()
