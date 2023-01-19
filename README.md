@@ -11,16 +11,16 @@ CAE contacted UNT a while back about research with a deep reinforcement learning
  
 # Status/Updates:
 At the start of 2022, Rebecca and Mounika created a basic q-learning model with a relatively basic environment. The graphics were only still images from matplotlib.
-In Summer 2022, I essentially completely transformed everything. I adapted the old environment to an OpenAI Gym environment (agent-vs-random and agent-vs-pretrained-model) that uses pygame. I trained the one agent using Stable-Baselines3 PPO and DQN. First we trained it against an agent using random choice (it had the choices forward, shoot, to enemy base, and to enemy plane). Then, I took that trained agent and placed it into the blue plane and trained the red plane against it.
+In Summer 2022, I essentially completely transformed everything. I adapted the old environment to an [OpenAI Gym](https://github.com/openai/gym) environment that uses pygame. I trained the one agent using [Stable-Baselines3](https://stable-baselines3.readthedocs.io/en/master/) PPO and DQN. First we trained it against an agent using random choice (it had the choices forward, shoot, to enemy base, and to enemy plane). Then, I took that trained agent and placed it into the blue plane and trained the red plane against it.
  
-However, we wanted to tackle multi-agent reinforcement learning (MARL) to see if wed could get planes to collaborate. So, I turned that Gym environment into a PettingZoo environment. We had to switch off of SB3 because it does not support MARL.
+However, we wanted to tackle multi-agent reinforcement learning (MARL) to see if we could get planes to collaborate. So, I turned that Gym environment into a [PettingZoo](https://pettingzoo.farama.org/) environment. We had to switch off of SB3 because it does not support MARL.
  
-There was a small effort on a Unity game (not in repo) because Unity’s ML-Agents seems much better for this application since PettingZoo and other MARL frameworks are also still in their early development stages (PettingZoo was released in 2020). This effort could be continued in the future for a 3D environment with proper physics.
+There was a small effort on a Unity game (not in repo) because Unity’s [ML-Agents](https://unity.com/products/machine-learning-agents) seems much better for this application since PettingZoo and other MARL frameworks are also still in their early development stages (PettingZoo was released in 2020). This effort could be continued in the future for a 3D environment with proper physics. In addition, unity already has MARL algorithms for co-op/competitive environments built in.
  
 After using some completely decentralized algorithms, I transitioned to looking for strategies to harbor collaboration between teammates, but still have the planes make their own independent decisions. Here are the approaches I could find (there are not many of these approaches yet):
-- Learning to Share (LToS): https://arxiv.org/pdf/2112.08702.pdf
-- Actor-Attention-Critic (MAAC): https://arxiv.org/pdf/1810.02912.pdf
-- Multi-Agent Deep Deterministic Policy (MADDPG): https://arxiv.org/abs/1706.02275
+- [Learning to Share (LToS)](https://arxiv.org/pdf/2112.08702.pdf)
+- [Actor-Attention-Critic (MAAC)](https://arxiv.org/pdf/1810.02912.pdf)
+- [Multi-Agent Deep Deterministic Policy (MADDPG)](https://arxiv.org/abs/1706.02275)
 
 I went with MADDPG because of the simplicity. I referenced two different repos for help on the model:
 - https://github.com/shariqiqbal2810/maddpg-pytorch
@@ -32,26 +32,23 @@ The "completed_model" in the models folder is the finished model that will be sh
 
 # Behavior:
 ### MADDPG
-The Multi-Agent Deep Deterministic Policy Gradient is an off-policy temporal difference (TD) algorithm for multi-agent environments. It works using a critic network which estimates the Q-value from the actions and observations of the agent's teammates. That Q-value recommends the moves to the actor network which chooses actions based on that agent's observations alone. A diagram is shown below:
+The Multi-Agent Deep Deterministic Policy Gradient is an off-policy temporal difference (TD) algorithm for multi-agent environments. It works using a critic network which estimates the Q-value from the actions and observations of the agent's teammates. That Q-value recommends actions to the actor network which chooses actions based on only that agent's observations. A diagram is shown below:
+
+![maddpg drawio (2)](https://user-images.githubusercontent.com/65684280/208565295-d1e9f080-af33-4a6f-aa94-f604f21e228a.png)
 
 ### Instinct
 The instinct agents are just agents controlled by a set policy. First the agent chooses its target by scoring each of the enemies and then choosing the minimum. The score, s, is calculated through the following equation where d is the distance to the enemy and a is the angle of the enemy relative to the agent:
 $s = d*\lvert a\rvert$
 
-After choosing the target, it determines the actions ($a_0, a_1, a_2$), between $[-1, 1]$ using the following calculations:
-- Speed: $D$ is the maximum distance, $a_0 = \frac{2d}{D}-1$
-- Turn: $T_m$ is the maximum turn for one timestep, 
-    $a_1= 
-    \begin{cases}
-        max(-a\div T_m, -1) & \text{if } a>0\\
-        min(-a\div T_m, 1) & \text{if } a\le0
-    \end{cases}$
-- Shoot: $d_b$ is the distance a bullet can travel, $R\in[-1,1]$,
-    $a_2= 
-        \begin{cases}
-            1 & \text{if } \lvert a\rvert<20 \land d<\frac{2}{3}d_b \land R<0.6 \\
-            -1 & \text{otherwise}
-        \end{cases}$
+After choosing the target, it determines the actions between $[-1, 1]$ using the following calculations:
+- Speed: Twice the distance of the target divided by the length of the diagonal of the game field
+- Turn: 
+    - If aiming left of the target, take max of `-angle/max_turn` and -1
+    - If aiming right of the target, take min of `-angle/max_turn` and 1
+- Shoot:
+    - If within 20 degrees and within two thirds of the distance a bullet can travel, there is a 60% chance of shooting
+    - Else, don't shoot (-1)
+   
 # Installation Guide:
 We’ve been using Anaconda in Python 3.9.12 to run the code. I recommend installing miniconda3 and then using VSCode with the conda interpreter. Install miniconda3 from here:
  
@@ -67,10 +64,8 @@ Then, open an anaconda prompt from start menu and run
  
 `conda init powershell`
 
-
 `code .`
 
- 
 That should open up VSCode through anaconda. After that, you should only need to change the interpreter in the bottom right to miniconda3 base.
  
 To install the dependencies for this project, run the following command:
