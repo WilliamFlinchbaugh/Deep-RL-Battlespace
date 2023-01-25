@@ -2,7 +2,7 @@
 Multi-Agent Reinforcement Learning in Simulated Aviation Battle Scenarios
  
 # Contributors:
-- William Flinchbaugh (“Project lead”, wrote every bit of the code, I’m the one that wrote these docs, TAMS student)
+- William Flinchbaugh (Project lead, wrote every bit of the code, I’m the one that wrote these docs, TAMS student)
 - Shane Forry (Worked on poster, logistics, ideas, REU student)
 - Anshuman Singhal (Worked on paper a bit, did some research, TAMS student), 
  
