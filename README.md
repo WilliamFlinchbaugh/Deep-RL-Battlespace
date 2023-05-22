@@ -4,7 +4,6 @@ Multi-Agent Reinforcement Learning in Simulated Aviation Battle Scenarios
 # Contributors:
 - William Flinchbaugh (Project lead, wrote every bit of the code, I’m the one that wrote these docs, TAMS student)
 - Shane Forry (Worked on poster, logistics, ideas, REU student)
-- Anshuman Singhal (Worked on paper a bit, did some research, TAMS student), 
  
 # Background of project:
 CAE contacted UNT a while back about research with a deep reinforcement learning model that could help train pilots in aviation battle scenarios. The funding never went through, so the goal is to create a working model to pitch back to CAE. We want funding for a paper on the environment and model, or just general usage of MARL in this fashion. They are also potentially looking for interns.
