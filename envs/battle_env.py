@@ -4,8 +4,8 @@ import pygame
 from pygame.locals import *
 import numpy as np
 import math
-from gym import spaces
-from gym.utils import EzPickle
+from gymnasium.spaces import Box, Discrete
+from gymnasium.utils.ezpickle import EzPickle
 import os
 from pettingzoo import ParallelEnv
 from pettingzoo.utils import wrappers
@@ -131,7 +131,7 @@ class parallel_env(ParallelEnv, EzPickle):
 
         self.obs_size = 3 * n_agents + 2 # Length of observation for each agent
         high = np.ones(self.obs_size, dtype=np.float32)
-        obs_space = spaces.Box(high, -high) # Observation space for each agent
+        obs_space = Box(-high, high) # Observation space for each agent
         self.observation_spaces = {agent: obs_space for agent in self.possible_agents} # Dictionary containing an observation space for each agent
         
         """
@@ -152,12 +152,12 @@ class parallel_env(ParallelEnv, EzPickle):
             self.max_speed = 275
             self.min_speed = 200
             high = np.ones(self.n_actions, dtype=np.float32)
-            action_space = spaces.Box(low=-1, high=1, shape=(3,), dtype=np.float32)
+            action_space = Box(low=-1, high=1, shape=(3,), dtype=np.float32)
         else:
             self.n_actions = 4
             self.step_turn = 15 # degrees to turn per step
             self.speed = 215 # mph
-            action_space = spaces.Discrete(self.n_actions)
+            action_space = Discrete(self.n_actions)
 
         self.action_spaces = {agent: action_space for agent in self.possible_agents} # Dictionary containing an action space for each agent
         

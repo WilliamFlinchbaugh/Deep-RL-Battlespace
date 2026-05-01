@@ -2,6 +2,7 @@ import envs.battle_env as battle_env
 import instinct.team as instinct
 import maddpg.team as maddpg
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 import json
 import os
 import shutil
@@ -49,7 +50,7 @@ def main():
         "tie": 0
     }
 
-    for _ in range(10000):
+    for _ in tqdm(range(100), "Evaluating winrates"):
         observations = env.reset()
 
         red_obs = {}
@@ -76,6 +77,12 @@ def main():
             blue_obs = blue_obs_
         
         wins[env.winner] += 1
+    
+    print(wins)
+    
+    videos_dir = f'{FOLDER}/eval_videos/'
+    if not os.path.exists(videos_dir):
+        os.makedirs(videos_dir, exist_ok=True)
 
     env.show = True
     env.start_recording(path=f'{FOLDER}/eval_videos/')
@@ -106,7 +113,7 @@ def main():
             red_obs = red_obs_
             blue_obs = blue_obs_
 
-    env.stop_recording()
+    env.export_video()
 
 if __name__ == '__main__':
     main()
